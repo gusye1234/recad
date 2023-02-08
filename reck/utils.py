@@ -45,29 +45,17 @@ def check_path_or_empty(*args):
         return ""
 
 
-# def configurable(init_func):
-#     assert init_func is not None, "@configurable is only used from __init__"
-#     assert (
-#         inspect.isfunction(init_func) and init_func.__name__ == "__init__"
-#     ), "@configurable is only used from __init__"
+class VarDim:
+    def __init__(self, max=None, min=None):
+        self.max = max or "?"
+        self.min = min or "?"
 
-#     @functools.wraps(init_func)
-#     def wrapped(self, *args, **kwargs):
-#         try:
-#             from_config_func = type(self).from_config
-#         except AttributeError as e:
-#             raise AttributeError(
-#                 "Class with @configurable must have a 'from_config' classmethod."
-#             ) from e
-#         if not inspect.ismethod(from_config_func):
-#             raise TypeError(
-#                 "Class with @configurable must have a 'from_config' classmethod."
-#             )
-#         config = from_config_func()
-#         if _called_with_cfg(*args, **kwargs):
-#             explicit_args = _get_args_from_config(from_config_func, *args, **kwargs)
-#             init_func(self, **explicit_args)
-#         else:
-#             init_func(self, *args, **kwargs)
+    def __repr__(self) -> str:
+        return f"{self.min}~{self.max}"
 
-#     return wrapped
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
+def dict2list_table(d: dict):
+    return [(k, repr(v)) for k, v in d.items()]
