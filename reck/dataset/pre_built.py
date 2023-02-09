@@ -11,10 +11,9 @@ from numbers import Number
 from scipy.sparse import csr_matrix
 
 
-class PreBuilt(BaseDataset):
+class DatDataset(BaseDataset):
     def __init__(
         self,
-        name,
         path_train,
         path_test,
         header,
@@ -32,7 +31,7 @@ class PreBuilt(BaseDataset):
         self.verbose = verbose
         self.batch_size = batch_size
         self.keep_rate_net = keep_rate_net
-        self.logger = get_logger(__name__ + f":{name}")
+        self.logger = get_logger(__name__ + f":{self.dataset_name}")
 
         self._init()
         self.total_batch = (self.n_items + self.batch_size - 1) // self.batch_size
@@ -58,22 +57,10 @@ class PreBuilt(BaseDataset):
 
     @classmethod
     def from_config(cls, name, **kwargs):
-        assert name in DATASET, f"{name} is not on the pre-built datasets"
-        config = {
-            k: copy(DATASET[name][k])
-            for k in [
-                'path_train',
-                'path_test',
-                'header',
-                'sep',
-                'threshold',
-                'verbose',
-                'batch_size',
-                'keep_rate_net',
-            ]
-        }
-        config['name'] = name
-        return super().from_config(config, kwargs)
+        args = (
+            "path_train,path_test,header,sep,threshold,verbose,batch_size,keep_rate_net"
+        )
+        return super().from_config(name, args, kwargs)
 
     def switch_mode(self, mode):
         assert mode.lower() in ['train', "test"]

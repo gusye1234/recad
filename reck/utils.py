@@ -59,3 +59,7 @@ class VarDim:
 
 def dict2list_table(d: dict):
     return [(k, repr(v)) for k, v in d.items()]
+
+
+def strip_str(s: str):
+    return s.strip().strip("\n")

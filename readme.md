@@ -10,7 +10,7 @@ import reck
 
 # quickly asscess the dataset
 reck.default.data_help_info("ml100k")
-data = reck.dataset.pre_built.PreBuilt.from_config("ml100k", verbose=True)
+data = reck.dataset.pre_built.DatDataset.from_config("ml100k", verbose=True)
 ```
 
 

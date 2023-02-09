@@ -32,3 +32,6 @@ DATASET = {
 def data_help_info(name):
     assert name in DATASET, f"dataset {name} is not on the list"
     print(tabulate(dict2list_table(DATASET[name])))
+
+
+MODEL = {}
