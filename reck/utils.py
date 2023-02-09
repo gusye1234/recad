@@ -20,11 +20,12 @@ def get_logger(name, level=None):
         coloredlogs.DEFAULT_DATE_FORMAT = DEFAULT_DATE
         coloredlogs.install(level=level, logger=logger)
     except:
-        formatter = logging.Formatter(DEFAULT_FORMAT, datefmt=DEFAULT_DATE)
-        handler = logging.StreamHandler()
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.setLevel(level)
+        if not len(logger.handlers):
+            formatter = logging.Formatter(DEFAULT_FORMAT, datefmt=DEFAULT_DATE)
+            handler = logging.StreamHandler()
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+            logger.setLevel(level)
 
     return logger
 

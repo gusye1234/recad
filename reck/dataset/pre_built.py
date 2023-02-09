@@ -63,7 +63,13 @@ class DatDataset(BaseDataset):
         return super().from_config(name, args, kwargs)
 
     def switch_mode(self, mode):
-        assert mode.lower() in ['train', "test"]
+        assert mode.lower() in [
+            'rec_train',
+            "rec_test",
+            "rec_validate",
+            "attack_train",
+            "evaluate",
+        ]
         self._mode = mode
 
     def mode(self) -> str:

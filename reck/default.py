@@ -29,9 +29,22 @@ DATASET = {
 }
 
 
-def data_help_info(name):
+def dataset_help_info(name):
     assert name in DATASET, f"dataset {name} is not on the list"
-    print(tabulate(dict2list_table(DATASET[name])))
+    return tabulate(dict2list_table(DATASET[name]))
+
+
+def show_datasets():
+    return list(DATASET)
 
 
 MODEL = {}
+
+
+def model_help_info(name):
+    assert name in MODEL, f"model {name} is not on the list"
+    return tabulate(dict2list_table(MODEL[name]))
+
+
+def show_models():
+    return list(MODEL)
