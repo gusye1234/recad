@@ -17,8 +17,8 @@
 import reck
 
 # quickly asscess the dataset
-print(reck.default.data_help_info("ml100k"))
-data = reck.dataset.pre_built.DatDataset.from_config("ml100k", verbose=True)
+print(reck.default.dataset_print_help("ml100k"))
+data = reck.dataset.pre_built.NPYDataset.from_config("ml100k", verbose=True)
 
 victim_model = reck.model.from_config("victim", "LightGCN")
 attack_model = reck.model.from_config("attack", "AUSH")
@@ -58,10 +58,10 @@ attack_model = reck.model.from_config("attack", "AUSH")
 workflow = reck.workflow.from_config("normal")(dataset, victim_model, attack_model)
 ```
 
-Confused about what a component is doing? Each component in `reck` will have a `help_info` method to return the input/output information:
+Confused about what a component is doing? Each component in `reck` will have a `print_help` method to return the input/output information:
 
 ```python
-print(dataset.help_info())
+dataset.print_help()
 # ╒═══════════════╤═══════════════╤══════════════╕
 # │ name          │ type          │ shape        │
 # ╞═══════════════╪═══════════════╪══════════════╡

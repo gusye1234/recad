@@ -3,6 +3,10 @@
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
+.DS_Store
+data/
+generated/
+workflow_results/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -171,4 +175,3 @@ poetry.toml
 .ruff_cache/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
-
