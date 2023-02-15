@@ -2,7 +2,12 @@ from . import victim, attacker
 
 factories = {
     "victim": {"lightgcn": victim.LightGCN},
-    "attacker": {"random": attacker.RandomAttack, "average": attacker.AverageAttack},
+    "attacker": {
+        "random": attacker.RandomAttack,
+        "average": attacker.AverageAttack,
+        "segment": attacker.SegmentAttack,
+        "bandwagon": attacker.BandwagonAttack,
+    },
 }
 
 

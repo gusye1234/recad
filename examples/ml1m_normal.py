@@ -1,4 +1,3 @@
-from torch.optim import Adam
 import sys
 
 sys.path.append("..")
@@ -16,7 +15,7 @@ attack_data.print_help()
 
 rec_model = reck.model.from_config("victim", "lightgcn", dataset=data)
 
-attack_model = reck.model.from_config("attacker", "average", dataset=attack_data)
+attack_model = reck.model.from_config("attacker", "bandwagon", dataset=attack_data)
 
 config = {
     "victim_data": data,

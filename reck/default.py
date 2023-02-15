@@ -83,17 +83,14 @@ _decorate_config(DATASET, "cache_dir", use_dir(".", "generated"), 3)
 
 
 def dataset_print_help(name):
-    found = None
     for k, v in DATASET.items():
         if name in v:
-            found = k
-            break
-    assert found is not None, f"dataset {name} is not on the list"
-    print(tabulate(dict2list_table(DATASET[found][name]), disable_numparse=True))
+            print(k)
+            print(tabulate(dict2list_table(DATASET[k][name]), disable_numparse=True))
 
 
-def show_datasets():
-    return list(DATASET)
+def print_datasets():
+    print({k: list(v) for k, v in DATASET.items()})
 
 
 MODEL = {
@@ -108,20 +105,46 @@ MODEL = {
             "lambda": 0.0001,
         }
     },
-    "attacker": {"random": {"attack_num": 50, "filler_num": 36}},
+    "attacker": {
+        "random": {"attack_num": 50, "filler_num": 36},
+        "average": {"attack_num": 50, "filler_num": 36},
+        "segment": {
+            "attack_num": 50,
+            "filler_num": 36,
+            "selected_ids": [
+                1153,
+                2201,
+                1572,
+                836,
+                523,
+                849,
+                1171,
+                344,
+                857,
+                1213,
+                1535,
+            ],
+        },
+        "bandwagon": {
+            "attack_num": 50,
+            "filler_num": 36,
+            "selected_ids": [],
+        },
+    },
 }
 
 _decorate_config(MODEL, "logging_level", logging.INFO, 3)
 
 
-def model_print_help(scope, name):
-    assert name in MODEL[scope], f"model {name} is not on the {scope} models"
-    print(dict2list_table(MODEL[scope][name]))
-    print(tabulate(dict2list_table(MODEL[scope][name]), disable_numparse=True))
+def model_print_help(name):
+    for k, v in MODEL.items():
+        if name in v:
+            print(k)
+            print(tabulate(dict2list_table(DATASET[k][name]), disable_numparse=True))
 
 
-def show_models():
-    return list(MODEL)
+def print_models():
+    print({k: list(v) for k, v in MODEL.items()})
 
 
 WORKFLOW = {
