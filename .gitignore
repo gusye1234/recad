@@ -4,7 +4,9 @@
 ### Python ###
 # Byte-compiled / optimized / DLL files
 .DS_Store
-data/
+data/ml1m
+data/yelp
+data/game
 generated/
 workflow_results/
 
