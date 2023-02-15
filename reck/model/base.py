@@ -54,7 +54,7 @@ class BaseModel(Module, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def train_step(self):
+    def train_step(self, **config):
         """Unlike the forward method, this method should return the results relative to the object function"""
         raise NotImplementedError
 

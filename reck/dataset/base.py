@@ -67,7 +67,7 @@ class BaseDataset(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def generate_batch(self) -> Generator:
+    def generate_batch(self, **config) -> Generator:
         raise NotImplementedError
 
     @abstractmethod

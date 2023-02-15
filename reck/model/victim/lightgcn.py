@@ -4,6 +4,7 @@ from torch import nn
 from ...utils import user_side_check, get_logger, VarDim
 from ...default import MODEL
 from ...dataset import BaseDataset
+from ...utils import pick_optim
 
 
 class LightGCN(BaseVictim):
@@ -11,9 +12,11 @@ class LightGCN(BaseVictim):
         super(LightGCN, self).__init__()
         self.config = config
         self.dataset: BaseDataset = config['dataset']
-
         self.logger = get_logger(__name__, config['logging_level'])
         self.__init_weight()
+        self.optimizer = pick_optim(self.config['optim'])(
+            self.parameters(), lr=self.config['lr']
+        )
 
     @classmethod
     def from_config(cls, **kwargs):
@@ -54,7 +57,6 @@ class LightGCN(BaseVictim):
             self.logger.debug('use pretarined data')
         self.f = nn.Sigmoid()
         self.logger.debug(f"lgn is already to go(dropout:{self.config['dropout']})")
-
         # print("save_txt")
 
     def __dropout_x(self, x, keep_prob):
@@ -127,36 +129,43 @@ class LightGCN(BaseVictim):
         neg_emb_ego = self.embedding_item(neg_items)
         return users_emb, pos_emb, neg_emb, users_emb_ego, pos_emb_ego, neg_emb_ego
 
-    def train_step(self, users, positive_items, negative_items, **config):
-        pos = positive_items
-        neg = negative_items
-        (users_emb, pos_emb, neg_emb, userEmb0, posEmb0, negEmb0) = self.getEmbedding(
-            users.long(), pos.long(), neg.long()
-        )
-        reg_loss = (
-            (1 / 2)
-            * (
-                userEmb0.norm(2).pow(2)
-                + posEmb0.norm(2).pow(2)
-                + negEmb0.norm(2).pow(2)
+    def train_step(self, **config):
+        optim = self.optimizer
+        total_loss = 0.0
+        for idx, dp in enumerate(self.dataset.generate_batch()):
+            users = dp['users']
+            pos = dp['positive_items']
+            neg = dp['negative_items']
+            (
+                users_emb,
+                pos_emb,
+                neg_emb,
+                userEmb0,
+                posEmb0,
+                negEmb0,
+            ) = self.getEmbedding(users.long(), pos.long(), neg.long())
+            reg_loss = (
+                (1 / 2)
+                * (
+                    userEmb0.norm(2).pow(2)
+                    + posEmb0.norm(2).pow(2)
+                    + negEmb0.norm(2).pow(2)
+                )
+                / float(len(users))
             )
-            / float(len(users))
-        )
-        pos_scores = torch.mul(users_emb, pos_emb)
-        pos_scores = torch.sum(pos_scores, dim=1)
-        neg_scores = torch.mul(users_emb, neg_emb)
-        neg_scores = torch.sum(neg_scores, dim=1)
+            pos_scores = torch.mul(users_emb, pos_emb)
+            pos_scores = torch.sum(pos_scores, dim=1)
+            neg_scores = torch.mul(users_emb, neg_emb)
+            neg_scores = torch.sum(neg_scores, dim=1)
 
-        loss = torch.mean(torch.nn.functional.softplus(neg_scores - pos_scores))
+            loss = torch.mean(torch.nn.functional.softplus(neg_scores - pos_scores))
 
-        final_loss = loss + self.config['lambda'] * reg_loss
-
-        optim = config.get("optimizer", None)
-        assert optim is not None, "Expect to have an optimizer to perform training"
-        optim.zero_grad()
-        final_loss.backward()
-        optim.step()
-        return final_loss.cpu().item()
+            final_loss = loss + self.config['lambda'] * reg_loss
+            optim.zero_grad()
+            final_loss.backward()
+            optim.step()
+            total_loss += final_loss.item()
+        return total_loss / (idx + 1)
 
     def forward(self, users, items):
         # compute embedding

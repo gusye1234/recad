@@ -1,3 +1,4 @@
+import torch
 from .base import BaseDataset
 import numpy as np
 import pandas as pd
@@ -112,7 +113,20 @@ class ExplicitData(BaseDataset):
         return super().from_config("explicit", name, args, user_config)
 
     def batch_describe(self):
-        return {}
+        if self.mode() == 'train':
+            return {
+                'users': (
+                    torch.int64,
+                    (VarDim(max=self.config['batch_size'], comment="batch size")),
+                ),
+                'users_mat': (
+                    torch.float32,
+                    (
+                        VarDim(max=self.config['batch_size'], comment="batch size"),
+                        self.n_items,
+                    ),
+                ),
+            }
 
     def info_describe(self):
         infos = {
@@ -131,9 +145,29 @@ class ExplicitData(BaseDataset):
     def mode(self) -> str:
         return self._mode
 
-    def generate_batch(self):
+    def generate_batch(self, **config):
         if self.mode() == 'train':
-            pass
+            filler_num = config['filler_num']
+            selected_ids = config['selected_ids']
+            target_id_list = config['target_id_list']
+            batch_size = self.config['batch_size']
+            mask_array = (self.train_mat > 0).astype(np.float)
+            mask_array[:, selected_ids + target_id_list] = 0
+            available_idx = np.where(np.sum(mask_array, 1) >= filler_num)[0]
+            available_idx = np.random.permutation(available_idx)
+            total_batch = (len(available_idx) + batch_size - 1) // batch_size
+            for b in range(total_batch):
+                batch_set_idx = available_idx[b * batch_size : (b + 1) * batch_size]
+                real_profiles = self.train_mat[batch_set_idx, :].astype('float')
+
+                yield {
+                    "users": torch.tensor(batch_set_idx, dtype=torch.int64).to(
+                        self.config['device']
+                    ),
+                    "users_mat": torch.tensor(real_profiles, dtype=torch.float32).to(
+                        self.config['device']
+                    ),
+                }
 
     def switch_mode(self, mode):
         assert mode in ["train", "test", "validate"]
@@ -151,13 +185,19 @@ class ExplicitData(BaseDataset):
         np.random.shuffle(users)
         left_users = users[: int(len(users) * user_ratio)]
 
-        left_index = np.array([(u in left_users) for u in self.train_dict[:, 0]])
+        left_index = np.zeros(len(self.train_dict), dtype=np.bool)
+        for u in left_users:
+            left_index = np.logical_or(left_index, self.train_dict[:, 0] == u)
         new_train_dict = self.train_dict[left_index]
 
-        left_index = np.array([(u in left_users) for u in self.test_dict[:, 0]])
+        left_index = np.zeros(len(self.test_dict), dtype=np.bool)
+        for u in left_users:
+            left_index = np.logical_or(left_index, self.test_dict[:, 0] == u)
         new_test_dict = self.test_dict[left_index]
 
-        left_index = np.array([(u in left_users) for u in self.valid_dict[:, 0]])
+        left_index = np.zeros(len(self.valid_dict), dtype=np.bool)
+        for u in left_users:
+            left_index = np.logical_or(left_index, self.valid_dict[:, 0] == u)
         new_valid_dict = self.valid_dict[left_index]
 
         return self.reset(

@@ -13,6 +13,7 @@ import logging
 _logger = get_logger(__name__)
 
 DATA_ROOT = root_path()
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 _logger.info(f"data dir located at {DATA_ROOT}")
 SEED = 2023
 
@@ -42,7 +43,6 @@ DATASET = {
             "test_batch_size": 400,
             "A_split": False,
             "A_n_fold": 100,
-            "device": torch.device('cuda' if torch.cuda.is_available() else "cpu"),
             "sample": "bpr",
             "need_graph": True,
             "rating_filter": 4,
@@ -75,9 +75,7 @@ _decorate_config(DATASET, "train_dict", None, 3)
 _decorate_config(DATASET, "valid_dict", None, 3)
 _decorate_config(DATASET, "test_dict", None, 3)
 _decorate_config(DATASET, "remap_enable", False, 3)  # for partial sample
-_decorate_config(
-    DATASET, "device", torch.device('cuda' if torch.cuda.is_available() else "cpu"), 3
-)
+_decorate_config(DATASET, "device", DEVICE, 3)
 _decorate_config(DATASET, "if_cache", False, 3)
 _decorate_config(DATASET, "cache_dir", use_dir(".", "generated"), 3)
 
@@ -103,6 +101,8 @@ MODEL = {
             "keep_prob": 0.6,
             "dropout": 0.0,
             "lambda": 0.0001,
+            "optim": 'adam',
+            "lr": 0.001,
         }
     },
     "attacker": {
@@ -130,10 +130,33 @@ MODEL = {
             "filler_num": 36,
             "selected_ids": [],
         },
+        "aush": {
+            "attack_num": 50,
+            "filler_num": 36,
+            "lr_g": 0.001,
+            "lr_d": 0.001,
+            "optim_g": 'adam',
+            "optim_d": 'adam',
+            "selected_ids": [
+                1153,
+                2201,
+                1572,
+                836,
+                523,
+                849,
+                1171,
+                344,
+                857,
+                1213,
+                1535,
+            ],
+            "ZR_ratio": 0.2,
+        },
     },
 }
 
 _decorate_config(MODEL, "logging_level", logging.INFO, 3)
+_decorate_config(MODEL, "device", DEVICE, 3)
 
 
 def model_print_help(name):
@@ -151,12 +174,8 @@ WORKFLOW = {
     "normal": {
         "cache_dir": check_dir_or_make(".", "workflows_results", "normal"),
         "rec_epoch": 400,
-        "rec_lr": 0.001,
-        "rec_optim": "adam",
         "attack_epoch": 100,
-        "attack_lr": 0.001,
-        "attack_optim": "adam",
-        "target_items": [
+        "target_id_list": [
             0,
         ],
         "filter_num": 4,
@@ -165,6 +184,4 @@ WORKFLOW = {
 }
 
 _decorate_config(WORKFLOW, "logging_level", logging.INFO, 2)
-_decorate_config(
-    WORKFLOW, "device", torch.device('cuda' if torch.cuda.is_available() else "cpu"), 2
-)
+_decorate_config(WORKFLOW, "device", DEVICE, 2)

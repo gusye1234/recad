@@ -31,17 +31,17 @@ class RandomAttack(BaseAttacker):
     def forward(self, users, items):
         pass
 
-    def generate_fake(self, target_id_set):
-        # target_id_set =[1551, 2510, 1167, 2362, 2233, 2801, 905, 1976, 3239, 3262]
+    def generate_fake(self, target_id_list, **config):
+        # target_id_list =[1551, 2510, 1167, 2362, 2233, 2801, 905, 1976, 3239, 3262]
         fake_profiles = np.zeros(shape=[self.attack_num, self.n_items], dtype=float)
-        rate = int(self.attack_num / len(target_id_set))
+        rate = int(self.attack_num / len(target_id_list))
         # padding target score
         self.logger.debug('every target item\'s num %s' % rate)
-        for i in range(len(target_id_set)):
-            fake_profiles[i * rate : (i + 1) * rate, target_id_set[i]] = 5
+        for i in range(len(target_id_list)):
+            fake_profiles[i * rate : (i + 1) * rate, target_id_list[i]] = 5
         # padding fillers score
         self.logger.debug(self.n_items)
-        filler_pool = list(set(range(self.n_items)) - set(target_id_set))
+        filler_pool = list(set(range(self.n_items)) - set(target_id_list))
         filler_sampler = lambda x: np.random.choice(x[0], size=x[1], replace=False)
         sampled_cols = np.reshape(
             np.array(
@@ -70,7 +70,7 @@ class RandomAttack(BaseAttacker):
     def input_describe(self):
         return {
             "generate_fake": {
-                "target_id_set": (Iterable, [VarDim()]),
+                "target_id_list": (Iterable, [VarDim()]),
             }
         }
 
@@ -112,15 +112,15 @@ class AverageAttack(BaseAttacker):
     def forward(self, users, items):
         pass
 
-    def generate_fake(self, target_id_set):
+    def generate_fake(self, target_id_list, **config):
         fake_profiles = np.zeros(shape=[self.attack_num, self.n_items], dtype=float)
         # padding target score
-        rate = int(self.attack_num / len(target_id_set))
+        rate = int(self.attack_num / len(target_id_list))
         # padding target score
-        for i in range(len(target_id_set)):
-            fake_profiles[i * rate : (i + 1) * rate, target_id_set[i]] = 5
+        for i in range(len(target_id_list)):
+            fake_profiles[i * rate : (i + 1) * rate, target_id_list[i]] = 5
 
-        filler_pool = list(set(range(self.n_items)) - set(target_id_set))
+        filler_pool = list(set(range(self.n_items)) - set(target_id_list))
         filler_sampler = lambda x: np.random.choice(x[0], size=x[1], replace=False)
         sampled_cols = np.reshape(
             np.array(
@@ -153,7 +153,7 @@ class AverageAttack(BaseAttacker):
     def input_describe(self):
         return {
             "generate_fake": {
-                "target_id_set": (Iterable, [VarDim()]),
+                "target_id_list": (Iterable, [VarDim()]),
             }
         }
 
@@ -188,19 +188,18 @@ class SegmentAttack(BaseAttacker):
     def forward(self, users, items):
         pass
 
-    def generate_fake(self, target_id_set):
+    def generate_fake(self, target_id_list, **config):
         fake_profiles = np.zeros(shape=[self.attack_num, self.n_items], dtype=float)
         # padding target score
-        rate = int(self.attack_num / len(target_id_set))
+        rate = int(self.attack_num / len(target_id_list))
         # padding target score
-        print('every target item\'s num %s' % rate)
-        for i in range(len(target_id_set)):
-            fake_profiles[i * rate : (i + 1) * rate, target_id_set[i]] = 5
+        for i in range(len(target_id_list)):
+            fake_profiles[i * rate : (i + 1) * rate, target_id_list[i]] = 5
         # padding selected score
         fake_profiles[:, self.selected_ids] = 5
         # padding fillers score
         filler_pool = list(
-            set(range(self.n_items)) - set(target_id_set) - set(self.selected_ids)
+            set(range(self.n_items)) - set(target_id_list) - set(self.selected_ids)
         )
         filler_sampler = lambda x: np.random.choice(x[0], size=x[1], replace=False)
         sampled_cols = np.reshape(
@@ -223,7 +222,7 @@ class SegmentAttack(BaseAttacker):
     def input_describe(self):
         return {
             "generate_fake": {
-                "target_id_set": (Iterable, [VarDim()]),
+                "target_id_list": (Iterable, [VarDim()]),
             }
         }
 
@@ -272,19 +271,19 @@ class BandwagonAttack(BaseAttacker):
     def forward(self, users, items):
         pass
 
-    def generate_fake(self, target_id_set):
+    def generate_fake(self, target_id_list, **config):
         fake_profiles = np.zeros(shape=[self.attack_num, self.n_items], dtype=float)
         # padding target score
         # fake_profiles[:, self.target_id] = 5
-        rate = int(self.attack_num / len(target_id_set))
+        rate = int(self.attack_num / len(target_id_list))
         # padding target score
-        for i in range(len(target_id_set)):
-            fake_profiles[i * rate : (i + 1) * rate, target_id_set[i]] = 5
+        for i in range(len(target_id_list)):
+            fake_profiles[i * rate : (i + 1) * rate, target_id_list[i]] = 5
         # padding selected score
         fake_profiles[:, self.selected_ids] = 5
         # padding fillers score
         filler_pool = list(
-            set(range(self.n_items)) - set(target_id_set) - set(self.selected_ids)
+            set(range(self.n_items)) - set(target_id_list) - set(self.selected_ids)
         )
         filler_sampler = lambda x: np.random.choice(x[0], size=x[1], replace=False)
         sampled_cols = np.reshape(
@@ -314,7 +313,7 @@ class BandwagonAttack(BaseAttacker):
     def input_describe(self):
         return {
             "generate_fake": {
-                "target_id_set": (Iterable, [VarDim()]),
+                "target_id_list": (Iterable, [VarDim()]),
             }
         }
 

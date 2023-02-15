@@ -7,6 +7,7 @@ factories = {
         "average": attacker.AverageAttack,
         "segment": attacker.SegmentAttack,
         "bandwagon": attacker.BandwagonAttack,
+        "aush": attacker.Aush,
     },
 }
 

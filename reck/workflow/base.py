@@ -41,6 +41,11 @@ class BaseFlow(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def info_describe(self):
+        """return the types of datasets and models this workflow needs"""
+        raise NotImplementedError
+
+    @abstractmethod
     def execute(self):
         """return the types of datasets and models this workflow needs"""
         raise NotImplementedError

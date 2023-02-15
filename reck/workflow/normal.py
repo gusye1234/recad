@@ -45,6 +45,9 @@ class Normal(BaseFlow):
             "attack_data": BaseDataset,
         }
 
+    def info_describe(self):
+        return {'target_id_list': self.c['target_id_list']}
+
     def user_item_model_generate(self, model, data_dict, topks, target_ids, device):
         preds = []
         users = []
@@ -84,23 +87,26 @@ class Normal(BaseFlow):
         return topks_array
 
     def normal_train(self, **config):
-        optimizer = pick_optim(config['optim'])(
-            config['model'].parameters(), lr=config['lr']
-        )
         self.logger.info("training the recommendation model")
 
         progress = tqdm(range(config['epoch']))
         for ep in progress:
-            for dp in config['dataset'].generate_batch():
-                loss = config['model'].train_step(**dp, optimizer=optimizer)
-                progress.set_description(f"loss:{loss:.4f}")
+            loss = config['model'].train_step(**self.info_describe())
+            out_des = config['model'].output_describe()['train_step']
+            assert len(loss) == len(
+                out_des
+            ), f"The output describe is not aligned with the actual output of train_step for {config['model'].model_name}"
+            loss_flag = ""
+            for i, out in enumerate(out_des.keys()):
+                loss_flag = loss_flag + f"{out}: {loss[i]:.4f}|"
+            progress.set_description(f"{loss_flag}")
 
     def normal_evaluate(
         self,
         model: BaseVictim,
         model_fake: BaseVictim,
         dataset: BaseDataset,
-        target_items,
+        target_id_list,
         topks,
     ):
         train_dict = dataset.info_describe()['train_dict']
@@ -121,7 +127,7 @@ class Normal(BaseFlow):
         full_items = set(range(n_items))
         for k in train_dict:
             existed = False
-            for target in target_items:
+            for target in target_id_list:
                 if target in filtered_dict[k]:
                     del filtered_dict[k]
                     existed = True
@@ -130,10 +136,10 @@ class Normal(BaseFlow):
                 filtered_dict[k] = list(full_items - filtered_dict[k])
         self.logger.debug("Done filtered")
         pred_results = self.user_item_model_generate(
-            model, filtered_dict, topks, target_items, self.c['device']
+            model, filtered_dict, topks, target_id_list, self.c['device']
         )
         pred_results_fake = self.user_item_model_generate(
-            model_fake, filtered_dict, topks, target_items, self.c['device']
+            model_fake, filtered_dict, topks, target_id_list, self.c['device']
         )
         assert np.allclose(
             pred_results[:, 0], pred_results_fake[:, 0]
@@ -153,9 +159,7 @@ class Normal(BaseFlow):
         self.logger.info("Step 1. training a recommender")
         self.normal_train(
             **{
-                'optim': self.c['rec_optim'],
                 'model': self.victim,
-                'lr': self.c['rec_lr'],
                 'epoch': self.c['rec_epoch'],
                 'dataset': self.victim_data,
             }
@@ -165,9 +169,7 @@ class Normal(BaseFlow):
         if "train_step" in self.attacker.input_describe():
             self.normal_train(
                 **{
-                    'optim': self.c['attack_optim'],
                     'model': self.attacker,
-                    'lr': self.c['attack_lr'],
                     'epoch': self.c['attack_epoch'],
                     'dataset': self.c['attack_data'],
                 }
@@ -178,7 +180,7 @@ class Normal(BaseFlow):
             )
 
         self.logger.info("Step 3. injecting fake data and re-train the recommender")
-        fake_array = self.attacker.generate_fake(self.c['target_items'])
+        fake_array = self.attacker.generate_fake(**self.info_describe())
         self.logger.debug(f"{fake_array.shape}")
         fake_dataset = self.victim_data.inject_data(
             "explicit", fake_array, filter_num=self.c['filter_num']
@@ -189,9 +191,7 @@ class Normal(BaseFlow):
         fake_victim = self.victim.reset().to(self.c['device'])
         self.normal_train(
             **{
-                'optim': self.c['rec_optim'],
                 'model': fake_victim,
-                'lr': self.c['rec_lr'],
                 'epoch': self.c['rec_epoch'],
                 'dataset': fake_dataset,
             }
@@ -199,12 +199,12 @@ class Normal(BaseFlow):
 
         # TODO add evaluate
         self.logger.debug(
-            f"targets: {self.c['target_items']}, topks: {self.c['topks']}"
+            f"targets: {self.c['target_id_list']}, topks: {self.c['topks']}"
         )
         self.normal_evaluate(
             self.victim,
             fake_victim,
             self.victim_data,
-            self.c['target_items'],
+            self.c['target_id_list'],
             topks=self.c['topks'],
         )

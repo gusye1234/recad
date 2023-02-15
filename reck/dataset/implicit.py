@@ -1,4 +1,4 @@
-# adapt from https://github.com/XMUDM/ShillingAttack/tree/master/Leg-UP
+import os
 from .base import BaseDataset
 from ..default import DATASET
 from ..utils import VarDim, get_logger, check_dir_or_make
@@ -215,10 +215,14 @@ class ImplicitData(BaseDataset):
     def getSparseGraph(self):
         self.logger.debug("loading adjacency matrix")
         if self.Graph is None:
-            if self.config.get('adj_mat', None):
-                pre_adj_mat = sp.load_npz(self.config['adj_mat'])
+            maybe_cache = join(
+                self.config['cache_dir'],
+                f"adj_mat_{self.dataset_name}_{self.n_users}_{self.n_items}.npz",
+            )
+            if os.path.exists(maybe_cache) and self.config['if_cache']:
+                pre_adj_mat = sp.load_npz(maybe_cache)
                 self.logger.warning(
-                    f"successfully loaded adj_mat from {self.config['adj_mat']}, this could cause the inconsistency of the dataset"
+                    f"successfully loaded adj_mat from {maybe_cache}, this could cause the inconsistency of the dataset"
                 )
                 norm_adj = pre_adj_mat
             else:
@@ -236,7 +240,7 @@ class ImplicitData(BaseDataset):
                 # adj_mat = adj_mat + sp.eye(adj_mat.shape[0])
 
                 rowsum = np.array(adj_mat.sum(axis=1))
-                d_inv = np.power(rowsum, -0.5).flatten()
+                d_inv = np.power(rowsum + 1e-14, -0.5).flatten()
                 d_inv[np.isinf(d_inv)] = 0.0
                 d_mat = sp.diags(d_inv)
 
@@ -302,7 +306,6 @@ class ImplicitData(BaseDataset):
         return:
             feedback [-1]
         """
-        # print(self.UserItemNet[users, items])
         return np.array(self.UserItemNet[users, items]).astype('uint8').reshape((-1,))
 
     def getUserPosItems(self, users):
@@ -366,7 +369,7 @@ class ImplicitData(BaseDataset):
     def mode(self) -> str:
         return self._mode
 
-    def generate_batch(self):
+    def generate_batch(self, **config):
         if self.config['sample'] == 'bpr' and self.mode() == 'train':
             S = UniformSample_original_python(self)
             users = torch.Tensor(S[:, 0]).long()
@@ -422,7 +425,7 @@ class ImplicitData(BaseDataset):
                     k not in new_train_dict
                 ), f"Injection to a exist user {k} is not allowed"
                 new_train_dict[k] = v
-            return self.reset(train_dict=new_train_dict)
+            return self.reset(train_dict=new_train_dict, if_cache=False)
         raise NotImplementedError(f"Injection not supported in {data_mode} mode")
 
     def partial_sample(self, **kwargs) -> 'BaseDataset':
