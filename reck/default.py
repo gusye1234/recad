@@ -27,16 +27,16 @@ def _decorate_config(D, k, v, depth):
 
 
 DATASET = {
-    "victim_dataset": {
+    "implicit": {
         name: {
             "path_train": check_path_or_empty(
-                DATA_ROOT, "data", name, "training_dict.npy"
+                DATA_ROOT, "data", name, f"{name}_train.csv"
             ),
             "path_valid": check_path_or_empty(
-                DATA_ROOT, "data", name, "validation_dict.npy"
+                DATA_ROOT, "data", name, f"{name}_valid.csv"
             ),
             "path_test": check_path_or_empty(
-                DATA_ROOT, "data", name, "testing_dict.npy"
+                DATA_ROOT, "data", name, f"{name}_test.csv"
             ),
             "bpr_batch_size": 2048,
             "test_batch_size": 400,
@@ -45,22 +45,26 @@ DATASET = {
             "device": torch.device('cuda' if torch.cuda.is_available() else "cpu"),
             "sample": "bpr",
             "need_graph": True,
+            "rating_filter": 4,
         }
         for name in ['ml1m', 'yelp']
     },
-    "attack_dataset": {
+    "explicit": {
         name: {
             "path_train": check_path_or_empty(
-                DATA_ROOT, "data", name, f"{name}_partial_train.csv"
+                DATA_ROOT, "data", name, f"{name}_train.csv"
             ),
             "path_test": check_path_or_empty(
-                DATA_ROOT, "data", name, f"{name}_partial_test.csv"
+                DATA_ROOT, "data", name, f"{name}_test.csv"
             ),
-            # "path_full"
+            "path_valid": check_path_or_empty(
+                DATA_ROOT, "data", name, f"{name}_test.csv"
+            ),
+            "batch_size": 256,
             'header': None,
             'sep': ',',
             'threshold': 4,
-            'verbose': False,
+            "sample": "row",
         }
         for name in ['ml1m', 'yelp']
     },
@@ -68,6 +72,12 @@ DATASET = {
 
 _decorate_config(DATASET, "logging_level", logging.INFO, 3)
 _decorate_config(DATASET, "train_dict", None, 3)
+_decorate_config(DATASET, "valid_dict", None, 3)
+_decorate_config(DATASET, "test_dict", None, 3)
+_decorate_config(DATASET, "remap_enable", False, 3)  # for partial sample
+_decorate_config(
+    DATASET, "device", torch.device('cuda' if torch.cuda.is_available() else "cpu"), 3
+)
 _decorate_config(DATASET, "if_cache", False, 3)
 _decorate_config(DATASET, "cache_dir", use_dir(".", "generated"), 3)
 
@@ -127,7 +137,11 @@ WORKFLOW = {
             0,
         ],
         "filter_num": 4,
+        "topks": [10, 20, 50, 100],
     }
 }
 
 _decorate_config(WORKFLOW, "logging_level", logging.INFO, 2)
+_decorate_config(
+    WORKFLOW, "device", torch.device('cuda' if torch.cuda.is_available() else "cpu"), 2
+)

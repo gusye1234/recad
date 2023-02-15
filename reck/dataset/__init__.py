@@ -6,5 +6,12 @@ TODO: finish the common fields
 .. note::
     _description_
 """
-from . import victim_dataset, attack_dataset
+from . import explicit, implicit
 from .base import BaseDataset
+
+
+factories = {"implicit": implicit.ImplicitData, "explicit": explicit.ExplicitData}
+
+
+def from_config(scope, *args, **kwargs):
+    return factories[scope].from_config(*args, **kwargs)

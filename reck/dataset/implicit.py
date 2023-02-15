@@ -7,6 +7,7 @@ from time import time
 from copy import copy
 import pandas as pd
 import numpy as np
+import random
 from os.path import dirname, join
 import scipy.sparse as sp
 from numbers import Number
@@ -78,14 +79,14 @@ def UniformSample_original_python(dataset):
 def csv2dict(file, filter=4):
     df = pd.read_csv(file)
     interactions = {}
-    for entry in df.to_list():
-        user_id, item_id, rate = entry
-        if rate < filter:
-            continue
-        if user_id not in interactions:
-            interactions[int(user_id)] = []
-        if item_id not in interactions[int(user_id)]:
-            interactions[int(user_id)].append(int(item_id))
+    df = df.sort_values("timestamp")
+    df = df[df['rating'] >= filter]
+    for u, i in zip(df['user_id'], df['item_id']):
+        if u not in interactions:
+            interactions[int(u)] = []
+        if i not in interactions[u]:  # to keep order of time
+            interactions[int(u)].append(int(i))
+    return interactions
 
 
 def fake_array2dict(fake_array, n_users, filter_num=4):
@@ -102,14 +103,14 @@ def npy2dict(file):
     return np.load(file, allow_pickle=True).item()
 
 
-def convert2dict(file: str):
+def convert2dict(file: str, filter_num):
     if file.endswith(".csv"):
-        return csv2dict(file)
+        return csv2dict(file, filter=filter_num)
     elif file.endswith(".npy"):
         return npy2dict(file)
 
 
-class NPYDataset(BaseDataset):
+class ImplicitData(BaseDataset):
     def __init__(self, **config):
         self.config = config
         self.logger = get_logger(
@@ -124,17 +125,19 @@ class NPYDataset(BaseDataset):
         valid_file = self.config['path_valid']
         test_file = self.config['path_test']
 
-        if self.config.get("train_dict", None) is None:
-            self.train_dict = convert2dict(train_file)
-        else:
-            self.logger.debug("Init train dict from a passed dict")
-            self.train_dict = self.config['train_dict']
-        self.valid_dict = convert2dict(valid_file)
-        self.test_dict = convert2dict(test_file)
+        for attr, default in zip(
+            ['train_dict', 'valid_dict', 'test_dict'],
+            [train_file, valid_file, test_file],
+        ):
+            if self.config[attr] is None:
+                setattr(self, attr, convert2dict(default, self.config['rating_filter']))
+            else:
+                self.logger.debug(f"Init {attr} from a passed dict")
+                setattr(self, attr, self.config[attr])
 
     def _init_data(self):
-        self.n_user = 0
-        self.m_item = 0
+        self.n_users = 0
+        self.n_items = 0
 
         self.split = self.config['A_split']
         self.folds = self.config['A_n_fold']
@@ -160,8 +163,8 @@ class NPYDataset(BaseDataset):
             self.testItem,
         ) = self.read_data(self.test_dict)
 
-        self.m_item += 1
-        self.n_user += 1
+        self.n_items += 1
+        self.n_users += 1
 
         self.Graph = None
         self.logger.debug(f"{self.traindataSize} interactions for training")
@@ -174,14 +177,14 @@ class NPYDataset(BaseDataset):
         # (users,items), bipartite graph
         self.UserItemNet = csr_matrix(
             (np.ones(len(self.trainUser)), (self.trainUser, self.trainItem)),
-            shape=(self.n_user, self.m_item),
+            shape=(self.n_users, self.n_items),
         )
         self.users_D = np.array(self.UserItemNet.sum(axis=1)).squeeze()
         self.users_D[self.users_D == 0.0] = 1
         self.items_D = np.array(self.UserItemNet.sum(axis=0)).squeeze()
         self.items_D[self.items_D == 0.0] = 1.0
         # pre-calculate
-        self._allPos = self.getUserPosItems(list(range(self.n_user)))
+        self._allPos = self.getUserPosItems(list(range(self.n_users)))
         self.logger.debug(f"{self.dataset_name} is ready to go")
 
         if self.config['need_graph']:
@@ -195,8 +198,8 @@ class NPYDataset(BaseDataset):
                 trainUniqueUsers.append(uid)
                 trainUser.extend([uid] * len(data_dict[uid]))
                 trainItem.extend(data_dict[uid])
-                self.m_item = max(self.m_item, max(data_dict[uid]))
-                self.n_user = max(self.n_user, uid)
+                self.n_items = max(self.n_items, max(data_dict[uid]))
+                self.n_users = max(self.n_users, uid)
                 traindataSize += len(data_dict[uid])
 
         self.trainUniqueUsers = np.array(trainUniqueUsers)
@@ -263,24 +266,6 @@ class NPYDataset(BaseDataset):
         return self.Graph
 
     @property
-    def n_users(self):
-        return self.n_user
-
-    @property
-    def n_items(self):
-        return self.m_item
-
-    def num_items(self):
-        return self.m_item
-
-    def trainDict(self):
-        return self.train_dict
-
-    @property
-    def testDict(self):
-        return self.test_dict
-
-    @property
     def allPos(self):
         return self._allPos
 
@@ -326,17 +311,10 @@ class NPYDataset(BaseDataset):
             posItems.append(self.UserItemNet[user].nonzero()[1])
         return posItems
 
-    def getUserValidItems(self, users):
-        validItems = []
-        for user in users:
-            if user in self.valid_dict:
-                validItems.append(self.valid_dict[user])
-        return validItems
-
     @classmethod
     def from_config(cls, name, **user_config):
-        args = list(DATASET['victim_dataset'][name])
-        return super().from_config("victim_dataset", name, args, user_config)
+        args = list(DATASET['implicit'][name])
+        return super().from_config("implicit", name, args, user_config)
 
     def batch_describe(self):
         if self.config['sample'] == 'bpr' and self.mode() == "train":
@@ -372,11 +350,14 @@ class NPYDataset(BaseDataset):
 
     def info_describe(self):
         infos = {
-            "n_users": self.n_user,
-            "n_items": self.m_item,
+            "n_users": self.n_users,
+            "n_items": self.n_items,
             "train_interactions": self.traindataSize,
             "valid_interactions": self.validDataSize,
             "test_interactions": self.testDataSize,
+            "train_dict": self.train_dict,
+            "valid_dict": self.valid_dict,
+            "test_dict": self.test_dict,
         }
         if self.config['need_graph']:
             infos['graph'] = self.Graph
@@ -430,9 +411,8 @@ class NPYDataset(BaseDataset):
         assert mode in ["train", "test", "validate"]
         self._mode = mode
 
-    def inject_data(self, mode, data, **kwargs):
-        # TODO use copy to avoid the injection affact the original dataset
-        if mode == 'train':
+    def inject_data(self, data_mode, data, **kwargs):
+        if data_mode == 'explicit':
             new_train_dict = copy(self.train_dict)
             inject_dict = fake_array2dict(
                 data, self.n_users, filter_num=kwargs['filter_num']
@@ -443,5 +423,16 @@ class NPYDataset(BaseDataset):
                 ), f"Injection to a exist user {k} is not allowed"
                 new_train_dict[k] = v
             return self.reset(train_dict=new_train_dict)
-        else:
-            raise NotImplementedError(f"Injection not supported in {mode} mode")
+        raise NotImplementedError(f"Injection not supported in {data_mode} mode")
+
+    def partial_sample(self, **kwargs) -> 'BaseDataset':
+        # TODO return the sampled implicit feedback, but attacker may want ratings
+        return super().partial_sample(**kwargs)
+        assert "user_ratio" in kwargs, "Expect to have [user_ratio]"
+        user_ratio = kwargs['user_ratio']
+
+        users = list(self.train_dict)
+        random.shuffle(users)
+        left_users = users[: int(len(users) * user_ratio)]
+        new_dict = {u: self.train_data[u] for u in left_users}
+        return self.reset(train_dict=new_dict)

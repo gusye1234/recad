@@ -4,6 +4,7 @@ from torch import optim
 from pathlib import Path
 import functools
 import inspect
+import numpy as np
 import logging
 from collections.abc import Iterable
 
@@ -91,7 +92,11 @@ def type_if_long(o):
     if len(s) < 30:
         return s
     elif isinstance(o, torch.Tensor):
-        return f"{o.dtype}, {tuple(o.shape)}"
+        return f"torch {o.dtype}, {tuple(o.shape)}"
+    elif isinstance(o, np.ndarray):
+        return f"numpy {o.dtype}, {tuple(o.shape)}"
+    elif isinstance(o, (dict, list)):
+        return f"{type(o)} {len(o)}"
     return type(o)
 
 

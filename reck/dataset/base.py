@@ -72,19 +72,30 @@ class BaseDataset(ABC):
 
     @abstractmethod
     def switch_mode(self, mode):
+        """switch between train, test, validation
+
+        :param mode: in [train, test, valid]
+        """
         raise NotImplementedError
 
     @abstractmethod
-    def inject_data(self, mode, data):
+    def inject_data(self, data_model, data) -> 'BaseDataset':
         """inject the attack data
 
-        :param mode: in which mode, default train mode
+        :param data_model: explicit or implicit, default explicit mode
         :param data: array(fake_users X n_items), each element is a rating
 
-        :raise: _description_
+        .. note::
+            please notice, the return datasets shouldn't related to the original one
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def partial_sample(self, **kwargs) -> 'BaseDataset':
+        """Sample a part of the dataset, to form a new dataset
 
         .. note::
-            _description_
+            please notice, the return datasets shouldn't related to the original one
         """
         raise NotImplementedError
 
@@ -112,7 +123,7 @@ class BaseDataset(ABC):
             info_des, dict
         ), "Wrong return type of info_describe, expected Dict"
         cols = [(k, type_if_long(v)) for k, v in info_des.items()]
-        print("Information:")
+        print(f"({self.dataset_name})Information:")
         print(BaseDataset.fmt_tab(cols))
 
         batch_des = self.batch_describe()
@@ -124,5 +135,5 @@ class BaseDataset(ABC):
         for k, v in batch_des.items():
             assert len(v) == 2
             headers.append((k, str(v[0]), str(v[1])))
-        print("Batch data:")
+        print(f"({self.dataset_name})Batch data:")
         print(BaseDataset.fmt_tab(headers))

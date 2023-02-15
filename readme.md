@@ -8,9 +8,6 @@
   </p>
 </div>
 
-
-
-
 ### Quick Start
 
 ```python
@@ -18,7 +15,7 @@ import reck
 
 # quickly asscess the dataset
 print(reck.default.dataset_print_help("ml100k"))
-data = reck.dataset.pre_built.NPYDataset.from_config("ml100k", verbose=True)
+data = reck.dataset.pre_built.ImplicitData.from_config("ml100k", verbose=True)
 
 victim_model = reck.model.from_config("victim", "LightGCN")
 attack_model = reck.model.from_config("attack", "AUSH")
@@ -28,11 +25,9 @@ workflow.train()
 workflow.evaluate()
 ```
 
-
-
 ### Have a look
 
-`reck` is designed to help users use and debug interactively. 
+`reck` is designed to help users use and debug interactively.
 
 ```python
 import reck
@@ -73,8 +68,6 @@ dataset.print_help()
 # ╘═══════════════╧═══════════════╧══════════════╛
 ```
 
-
-
 ### Contribution
 
 Install `pre-commit` first to make sure the commits you made is well-formatted:
@@ -83,4 +76,3 @@ Install `pre-commit` first to make sure the commits you made is well-formatted:
 pip install pre-commit
 pre-commit install
 ```
-

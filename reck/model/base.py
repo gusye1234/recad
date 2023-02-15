@@ -42,6 +42,7 @@ class BaseModel(Module, ABC):
         instan.__init__(**default_config)
         return instan
 
+    # TODO change describe method to classmethod
     @abstractmethod
     def input_describe(self):
         """Input description for method forward and object_forward"""
