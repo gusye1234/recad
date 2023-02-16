@@ -157,12 +157,12 @@ class Normal(BaseFlow):
 
     def execute(self):
         self.logger.info(
-            f"Normal attacking, with dataset {self.victim_data.dataset_name}, victim model {self.victim.model_name}, attack model {self.attacker.model_name}"
+            f"Normal attacking, with dataset {self.victim_data.dataset_name}, victim model {self.victim.model_name}, attack model {self.attacker.model_name}, on device {self.c['device']}"
         )
         self.victim = self.victim.to(self.c['device'])
         self.attacker = self.attacker.to(self.c['device'])
 
-        self.logger.info("Step 1. training a recommender")
+        self.logger.debug("Step 1. training a recommender")
         self.normal_train(
             **{
                 'model': self.victim,
@@ -171,7 +171,7 @@ class Normal(BaseFlow):
             }
         )
 
-        self.logger.info("Step 2. training a attacker")
+        self.logger.debug("Step 2. training a attacker")
         if "train_step" in self.attacker.input_describe():
             self.normal_train(
                 **{
@@ -185,7 +185,7 @@ class Normal(BaseFlow):
                 f"Skip attacker training, since {self.attacker.model_name} didn't require it"
             )
 
-        self.logger.info("Step 3. injecting fake data and re-train the recommender")
+        self.logger.debug("Step 3. injecting fake data and re-train the recommender")
         fake_array = self.attacker.generate_fake(**self.info_describe())
         self.logger.debug(f"{fake_array.shape}")
         fake_dataset = self.victim_data.inject_data(

@@ -107,15 +107,15 @@ MODEL = {
             "lr": 0.001,
         },
         "mf": {
-            "factor_num": 64,
+            "factor_num": 3,
             "embedding_size": 128,
             "dropout": 0,
             "optim": 'adam',
             "lr": 0.001,
         },
         "ncf": {
-            "factor_num": 64,
-            "num_layers": 3,  # TODO, this param is confusing
+            "factor_num": 32,
+            "num_layers": 5,
             "dropout": 0,
             "model": "NeuMF-end",
             "GMF_model": None,

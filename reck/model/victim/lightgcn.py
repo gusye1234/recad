@@ -169,8 +169,7 @@ class LightGCN(BaseVictim):
             total_loss += final_loss.item()
             if pbar:
                 pbar.set_description(f"loss {total_loss / (idx + 1):.5f}")
-                pbar.update()
-        return total_loss / (idx + 1)
+        return (total_loss / (idx + 1),)
 
     def forward(self, users, items):
         # compute embedding

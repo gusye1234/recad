@@ -53,7 +53,6 @@ class Aush(BaseAttacker):
         }
 
     def sample_fillers(self, real_profiles, target_id_list):
-        real_profiles = real_profiles.cpu().numpy()
         fillers = np.zeros_like(real_profiles)
         filler_pool = (
             set(range(self.n_items)) - set(self.selected_ids) - set(target_id_list)
@@ -105,7 +104,9 @@ class Aush(BaseAttacker):
                 .to(self.device)
                 .reshape(len(batch_set_idx), 1)
             )
-            fillers_mask = self.sample_fillers(real_profiles, target_id_list)
+            fillers_mask = self.sample_fillers(
+                real_profiles.cpu().numpy(), target_id_list
+            )
 
             # selected
             selects_mask = np.zeros_like(fillers_mask)

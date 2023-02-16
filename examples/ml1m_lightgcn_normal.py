@@ -24,7 +24,8 @@ config = {
     "attack_data": attack_data,
     "victim": rec_model,
     "attacker": attack_model,
-    "rec_epoch": 0,
+    "rec_epoch": 200,
+    "attack_epoch": 100,
 }
 workflow = reck.workflow.Normal.from_config(**config)
 
