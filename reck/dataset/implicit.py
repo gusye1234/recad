@@ -47,7 +47,7 @@ def minibatch(*tensors, **kwargs):
             yield tuple(x[i : i + batch_size] for x in tensors)
 
 
-def UniformSample_original_python(dataset):
+def pairwise_sample(dataset):
     """
     the original impliment of BPR Sampling in LightGCN
     :return:
@@ -57,8 +57,7 @@ def UniformSample_original_python(dataset):
     users = np.random.randint(0, dataset.n_users, user_num)
     allPos = dataset.allPos
     S = []
-    sample_time1 = 0.0
-    sample_time2 = 0.0
+
     for i, user in enumerate(users):
         posForUser = allPos[user]
         if len(posForUser) == 0:
@@ -72,8 +71,24 @@ def UniformSample_original_python(dataset):
             else:
                 break
         S.append([user, positem, negitem])
-        end = time()
     return np.array(S)
+
+
+def pointwise_sample(dataset: BaseDataset, negative_num_each_interaction):
+    data = []
+    train_dict = dataset.info_describe()['train_dict']
+    n_items = dataset.info_describe()['n_items']
+
+    full_items = set(range(n_items))
+    for uid, iids in train_dict.items():
+        data.extend([(uid, iid, 1) for iid in iids])
+
+        left_set = list(full_items - set(iids))
+        negs = np.random.choice(
+            left_set, size=len(iids) * negative_num_each_interaction
+        )
+        data.extend([(uid, ni, 0) for ni in negs])
+    return np.array(data)
 
 
 def csv2dict(file, filter=4):
@@ -320,19 +335,34 @@ class ImplicitData(BaseDataset):
         return super().from_config("implicit", name, args, user_config)
 
     def batch_describe(self):
-        if self.config['sample'] == 'bpr' and self.mode() == "train":
+        if self.config['sample'] == 'pairwise' and self.mode() == "train":
             return {
                 "users": (
                     torch.int64,
-                    (VarDim(max=self.config['bpr_batch_size'], comment="batch")),
+                    (VarDim(max=self.config['pairwise_batch_size'], comment="batch")),
                 ),
                 "positive_items": (
                     torch.int64,
-                    (VarDim(max=self.config['bpr_batch_size'], comment="batch")),
+                    (VarDim(max=self.config['pairwise_batch_size'], comment="batch")),
                 ),
                 "negative_items": (
                     torch.int64,
-                    (VarDim(max=self.config['bpr_batch_size'], comment="batch")),
+                    (VarDim(max=self.config['pairwise_batch_size'], comment="batch")),
+                ),
+            }
+        if self.config['sample'] == 'pointwise' and self.mode() == "train":
+            return {
+                "users": (
+                    torch.int64,
+                    (VarDim(max=self.config['pointwise_batch_size'], comment="batch")),
+                ),
+                "items": (
+                    torch.int64,
+                    (VarDim(max=self.config['pointwise_batch_size'], comment="batch")),
+                ),
+                "labels": (
+                    torch.int64,
+                    (VarDim(max=self.config['pointwise_batch_size'], comment="batch")),
                 ),
             }
         elif self.mode() in ["validate", "test"]:
@@ -370,8 +400,8 @@ class ImplicitData(BaseDataset):
         return self._mode
 
     def generate_batch(self, **config):
-        if self.config['sample'] == 'bpr' and self.mode() == 'train':
-            S = UniformSample_original_python(self)
+        if self.config['sample'] == 'pairwise' and self.mode() == 'train':
+            S = pairwise_sample(self)
             users = torch.Tensor(S[:, 0]).long()
             posItems = torch.Tensor(S[:, 1]).long()
             negItems = torch.Tensor(S[:, 2]).long()
@@ -381,15 +411,36 @@ class ImplicitData(BaseDataset):
             negItems = negItems.to(self.config['device'])
             users, posItems, negItems = shuffle(users, posItems, negItems)
             # total_batch = (
-            #     len(users) + self.config['bpr_batch_size'] - 1
-            # ) // self.config['bpr_batch_size']
+            #     len(users) + self.config['pairwise_batch_size'] - 1
+            # ) // self.config['pairwise_batch_size']
             for batch_users, batch_pos, batch_neg in minibatch(
-                users, posItems, negItems, batch_size=self.config['bpr_batch_size']
+                users, posItems, negItems, batch_size=self.config['pairwise_batch_size']
             ):
                 yield {
                     "users": batch_users.to(self.config['device']),
                     "positive_items": batch_pos.to(self.config['device']),
                     "negative_items": batch_neg.to(self.config['device']),
+                }
+        elif self.config['sample'] == 'pointwise' and self.mode() == 'train':
+            S = pointwise_sample(self, self.config['negative_ratio'])
+            users = torch.Tensor(S[:, 0]).long()
+            items = torch.Tensor(S[:, 1]).long()
+            labels = torch.Tensor(S[:, 2]).long()
+
+            users = users.to(self.config['device'])
+            items = items.to(self.config['device'])
+            labels = labels.to(self.config['device'])
+            users, items, labels = shuffle(users, items, labels)
+            # total_batch = (
+            #     len(users) + self.config['pairwise_batch_size'] - 1
+            # ) // self.config['pairwise_batch_size']
+            for batch_users, batch_items, batch_labels in minibatch(
+                users, items, labels, batch_size=self.config['pointwise_batch_size']
+            ):
+                yield {
+                    "users": batch_users,
+                    "items": batch_items,
+                    "labels": batch_labels,
                 }
         elif self.mode() == "train":
             raise NotImplementedError("Not implemented yet")

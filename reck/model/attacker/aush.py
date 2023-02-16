@@ -93,16 +93,14 @@ class Aush(BaseAttacker):
             batch_set_idx = dp['users']
             real_profiles = dp['users_mat']
 
-            valid_labels = np.ones_like(batch_set_idx)
-            fake_labels = np.zeros_like(batch_set_idx)
             valid_labels = (
-                torch.tensor(valid_labels)
+                torch.ones_like(batch_set_idx)
                 .type(torch.float)
                 .to(self.device)
                 .reshape(len(batch_set_idx), 1)
             )
             fake_labels = (
-                torch.tensor(fake_labels)
+                torch.zeros_like(batch_set_idx)
                 .type(torch.float)
                 .to(self.device)
                 .reshape(len(batch_set_idx), 1)

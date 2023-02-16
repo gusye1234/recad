@@ -91,8 +91,11 @@ class Normal(BaseFlow):
 
         progress = tqdm(range(config['epoch']))
         for ep in progress:
-            loss = config['model'].train_step(**self.info_describe())
+            loss = config['model'].train_step(
+                **self.info_describe(), progress_bar=progress
+            )
             out_des = config['model'].output_describe()['train_step']
+
             assert len(loss) == len(
                 out_des
             ), f"The output describe is not aligned with the actual output of train_step for {config['model'].model_name}"
@@ -153,6 +156,9 @@ class Normal(BaseFlow):
         print(Normal.fmt_tab(dict2list_table(results)))
 
     def execute(self):
+        self.logger.info(
+            f"Normal attacking, with dataset {self.victim_data.dataset_name}, victim model {self.victim.model_name}, attack model {self.attacker.model_name}"
+        )
         self.victim = self.victim.to(self.c['device'])
         self.attacker = self.attacker.to(self.c['device'])
 

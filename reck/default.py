@@ -39,11 +39,13 @@ DATASET = {
             "path_test": check_path_or_empty(
                 DATA_ROOT, "data", name, f"{name}_test.csv"
             ),
-            "bpr_batch_size": 2048,
             "test_batch_size": 400,
             "A_split": False,
             "A_n_fold": 100,
-            "sample": "bpr",
+            "pairwise_batch_size": 1024,
+            "pointwise_batch_size": 1024,
+            "sample": "pairwise",
+            "negative_ratio": 4,
             "need_graph": True,
             "rating_filter": 4,
         }
@@ -103,7 +105,24 @@ MODEL = {
             "lambda": 0.0001,
             "optim": 'adam',
             "lr": 0.001,
-        }
+        },
+        "mf": {
+            "factor_num": 64,
+            "embedding_size": 128,
+            "dropout": 0,
+            "optim": 'adam',
+            "lr": 0.001,
+        },
+        "ncf": {
+            "factor_num": 64,
+            "num_layers": 3,  # TODO, this param is confusing
+            "dropout": 0,
+            "model": "NeuMF-end",
+            "GMF_model": None,
+            "MLP_model": None,
+            "optim": 'adam',
+            "lr": 0.001,
+        },
     },
     "attacker": {
         "random": {"attack_num": 50, "filler_num": 36},
@@ -133,7 +152,7 @@ MODEL = {
         "aush": {
             "attack_num": 50,
             "filler_num": 36,
-            "lr_g": 0.001,
+            "lr_g": 0.01,
             "lr_d": 0.001,
             "optim_g": 'adam',
             "optim_d": 'adam',

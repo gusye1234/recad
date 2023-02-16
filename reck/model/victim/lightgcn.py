@@ -132,6 +132,8 @@ class LightGCN(BaseVictim):
     def train_step(self, **config):
         optim = self.optimizer
         total_loss = 0.0
+        self.train()
+        pbar = config.get('progress_bar', None)
         for idx, dp in enumerate(self.dataset.generate_batch()):
             users = dp['users']
             pos = dp['positive_items']
@@ -165,6 +167,9 @@ class LightGCN(BaseVictim):
             final_loss.backward()
             optim.step()
             total_loss += final_loss.item()
+            if pbar:
+                pbar.set_description(f"loss {total_loss / (idx + 1):.5f}")
+                pbar.update()
         return total_loss / (idx + 1)
 
     def forward(self, users, items):
