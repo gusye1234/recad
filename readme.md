@@ -9,7 +9,13 @@
 </div>
 
 ### Quick Start
+Try it from command line:
+```
+cd example
+python python from_command.py --attack="aush" --victim="lightgcn"
+```
 
+Or you can write your own script:
 ```python
 import reck
 
@@ -21,7 +27,7 @@ attack_data = reck.dataset.from_config("explicit", dataset_name).partial_sample(
     user_ratio=0.2
 )
 
-# set up models
+# set up models, which is a torch.nn.Module
 rec_model = reck.model.from_config("victim", "lightgcn", dataset=data)
 attack_model = reck.model.from_config("attacker", "average", dataset=attack_data)
 
@@ -31,7 +37,7 @@ config = {
     "attack_data": attack_data,
     "victim": rec_model,
     "attacker": attack_model,
-    "rec_epoch": 0,
+    "rec_epoch": 20,
 }
 workflow = reck.workflow.Normal.from_config(**config)
 # run the attacking

@@ -147,9 +147,9 @@ class ExplicitData(BaseDataset):
 
     def generate_batch(self, **config):
         if self.mode() == 'train':
+            selected_ids = config.get("selected_ids", [])
+            target_id_list = config.get("target_id_list", [])
             filler_num = config['filler_num']
-            selected_ids = config['selected_ids']
-            target_id_list = config['target_id_list']
             batch_size = self.config['batch_size']
             mask_array = (self.train_mat > 0).astype(np.float)
             mask_array[:, selected_ids + target_id_list] = 0

@@ -9,6 +9,7 @@ from ..model.victim import BaseVictim
 from ..default import WORKFLOW
 from ..utils import check_dir_or_make, pick_optim, get_logger, dict2list_table
 from collections import OrderedDict
+import logging
 from tqdm import tqdm
 
 
@@ -87,8 +88,6 @@ class Normal(BaseFlow):
         return topks_array
 
     def normal_train(self, **config):
-        self.logger.info("training the recommendation model")
-
         progress = tqdm(range(config['epoch']))
         for ep in progress:
             loss = config['model'].train_step(
@@ -162,7 +161,7 @@ class Normal(BaseFlow):
         self.victim = self.victim.to(self.c['device'])
         self.attacker = self.attacker.to(self.c['device'])
 
-        self.logger.debug("Step 1. training a recommender")
+        self.logger.info("Step 1. training a recommender")
         self.normal_train(
             **{
                 'model': self.victim,
@@ -171,7 +170,7 @@ class Normal(BaseFlow):
             }
         )
 
-        self.logger.debug("Step 2. training a attacker")
+        self.logger.info("Step 2. training a attacker")
         if "train_step" in self.attacker.input_describe():
             self.normal_train(
                 **{
@@ -185,14 +184,15 @@ class Normal(BaseFlow):
                 f"Skip attacker training, since {self.attacker.model_name} didn't require it"
             )
 
-        self.logger.debug("Step 3. injecting fake data and re-train the recommender")
+        self.logger.info("Step 3. injecting fake data and re-train the recommender")
         fake_array = self.attacker.generate_fake(**self.info_describe())
         self.logger.debug(f"{fake_array.shape}")
         fake_dataset = self.victim_data.inject_data(
             "explicit", fake_array, filter_num=self.c['filter_num']
         )
-        self.logger.info("After injection of the fake data")
-        fake_dataset.print_help()
+        self.logger.debug("After injection of the fake data")
+        if self.c['logging_level'] == logging.DEBUG:
+            fake_dataset.print_help()
 
         fake_victim = self.victim.reset().to(self.c['device'])
         self.normal_train(
