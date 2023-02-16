@@ -7,12 +7,20 @@
     </a>
   </p>
 </div>
+### Install 
+
+```
+git clone https://github.com/gusye1234/reck.git
+cd reck
+pip install -e "."
+```
 
 ### Quick Start
+
 Try it from command line:
 ```
 cd example
-python python from_command.py --attack="aush" --victim="lightgcn"
+python from_command.py --attack="aush" --victim="lightgcn"
 ```
 
 Or you can write your own script:
@@ -29,7 +37,7 @@ attack_data = reck.dataset.from_config("explicit", dataset_name).partial_sample(
 
 # set up models, which is a torch.nn.Module
 rec_model = reck.model.from_config("victim", "lightgcn", dataset=data)
-attack_model = reck.model.from_config("attacker", "average", dataset=attack_data)
+attack_model = reck.model.from_config("attacker", "aush", dataset=attack_data)
 
 
 config = {
