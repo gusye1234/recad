@@ -10,7 +10,7 @@ from copy import copy
 logger = get_logger(__name__)
 
 
-class BaseDataset(ABC):
+class BaseData(ABC):
     fmt_tab = partial(tabulate, headers='firstrow', tablefmt='fancy_grid')
 
     @classmethod
@@ -79,7 +79,7 @@ class BaseDataset(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def inject_data(self, data_model, data) -> 'BaseDataset':
+    def inject_data(self, data_model, data) -> 'BaseData':
         """inject the attack data
 
         :param data_model: explicit or implicit, default explicit mode
@@ -91,7 +91,7 @@ class BaseDataset(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def partial_sample(self, **kwargs) -> 'BaseDataset':
+    def partial_sample(self, **kwargs) -> 'BaseData':
         """Sample a part of the dataset, to form a new dataset
 
         .. note::
@@ -124,7 +124,7 @@ class BaseDataset(ABC):
         ), "Wrong return type of info_describe, expected Dict"
         cols = [(k, type_if_long(v)) for k, v in info_des.items()]
         print(f"({self.dataset_name})Information:")
-        print(BaseDataset.fmt_tab(cols))
+        print(BaseData.fmt_tab(cols))
 
         batch_des = self.batch_describe()
         assert isinstance(
@@ -136,4 +136,4 @@ class BaseDataset(ABC):
             assert len(v) == 2
             headers.append((k, str(v[0]), str(v[1])))
         print(f"({self.dataset_name})Batch data:")
-        print(BaseDataset.fmt_tab(headers))
+        print(BaseData.fmt_tab(headers))

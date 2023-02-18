@@ -3,7 +3,7 @@ from .base import BaseVictim
 from torch import nn
 from ...utils import user_side_check, get_logger, VarDim
 from ...default import MODEL
-from ...dataset import BaseDataset
+from ...dataset import BaseData
 from ...utils import pick_optim
 
 
@@ -11,7 +11,7 @@ class LightGCN(BaseVictim):
     def __init__(self, **config):
         super(LightGCN, self).__init__()
         self.config = config
-        self.dataset: BaseDataset = config['dataset']
+        self.dataset: BaseData = config['dataset']
         self.logger = get_logger(__name__, config['logging_level'])
         self.__init_weight()
         self.optimizer = pick_optim(self.config['optim'])(

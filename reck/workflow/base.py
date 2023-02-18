@@ -9,7 +9,7 @@ from tabulate import tabulate
 logger = get_logger(__name__)
 
 
-class BaseFlow(ABC):
+class BaseWorkflow(ABC):
     fmt_tab = partial(tabulate, headers='firstrow', tablefmt='fancy_grid')
 
     @classmethod

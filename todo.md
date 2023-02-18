@@ -1,10 +1,2 @@
-- [ ] `reck.dataset.from_config`
-- [ ] victim model:
-  - [ ] NCF
-  - [ ] LightGCN
-  - [ ] MF
-- [ ] `reck.model.from_config`
-- [ ] Workflow: 
-  - [ ] normal: train, evaluate
-- [ ] `reck.workflow.from_config`
-  - [ ] `normal`
+- [ ] provide auxiliary functions to convert datasets from well-known recommender framework(RecBole, BARS)
+- [ ] More models

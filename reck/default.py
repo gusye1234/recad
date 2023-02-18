@@ -49,7 +49,7 @@ DATASET = {
             "need_graph": True,
             "rating_filter": 4,
         }
-        for name in ['ml1m', 'yelp']
+        for name in ['ml1m', 'yelp', "game"]
     },
     "explicit": {
         name: {
@@ -68,7 +68,7 @@ DATASET = {
             'threshold': 4,
             "sample": "row",
         }
-        for name in ['ml1m', 'yelp']
+        for name in ['ml1m', 'yelp', "game"]
     },
 }
 
@@ -170,6 +170,14 @@ MODEL = {
                 1535,
             ],
             "ZR_ratio": 0.2,
+        },
+        "aia": {
+            "attack_num": 50,
+            "filler_num": 36,
+            "lr_g": 0.01,
+            "lr_d": 0.001,
+            "optim_g": 'adam',
+            "optim_d": 'adam',
         },
     },
 }

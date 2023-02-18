@@ -7,7 +7,7 @@ TODO: finish the common fields
     _description_
 """
 from . import explicit, implicit
-from .base import BaseDataset
+from .base import BaseData
 
 
 factories = {"implicit": implicit.ImplicitData, "explicit": explicit.ExplicitData}

@@ -2,8 +2,8 @@ from os import path
 import torch
 import pandas as pd
 import numpy as np
-from .base import BaseFlow
-from ..dataset import BaseDataset
+from .base import BaseWorkflow
+from ..dataset import BaseData
 from ..model.attacker import BaseAttacker
 from ..model.victim import BaseVictim
 from ..default import WORKFLOW
@@ -13,7 +13,7 @@ import logging
 from tqdm import tqdm
 
 
-class Normal(BaseFlow):
+class Normal(BaseWorkflow):
     def __init__(self, **config):
         self.c = config
         self.saving_dir = check_dir_or_make(
@@ -29,7 +29,7 @@ class Normal(BaseFlow):
         )
         self.attacker: BaseAttacker = config['attacker']
         self.victim: BaseVictim = config['victim']
-        self.victim_data: BaseDataset = config['victim_data']
+        self.victim_data: BaseData = config['victim_data']
         self.logger = get_logger(__name__, level=self.c['logging_level'])
 
     @classmethod
@@ -41,9 +41,9 @@ class Normal(BaseFlow):
     def input_describe(self):
         return {
             "victim": BaseVictim,
-            "victim_data": BaseDataset,
+            "victim_data": BaseData,
             "attacker": BaseAttacker,
-            "attack_data": BaseDataset,
+            "attack_data": BaseData,
         }
 
     def info_describe(self):
@@ -107,7 +107,7 @@ class Normal(BaseFlow):
         self,
         model: BaseVictim,
         model_fake: BaseVictim,
-        dataset: BaseDataset,
+        dataset: BaseData,
         target_id_list,
         topks,
     ):

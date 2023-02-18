@@ -1,13 +1,15 @@
 import torch
-from .base import BaseDataset
+from .base import BaseData
 import numpy as np
 import pandas as pd
+import os
+from os.path import join
 from ..utils import get_logger, VarDim
 from ..default import DATASET
 from scipy.sparse import csr_matrix
 
 
-class ExplicitData(BaseDataset):
+class ExplicitData(BaseData):
     def __init__(
         self,
         path_train,
@@ -40,20 +42,26 @@ class ExplicitData(BaseDataset):
         self.n_users = 0
         self.n_items = 0
 
-        if self.config['train_dict'] is None:
-            self.train_dict = self.load_file_as_dataFrame(self.path_train)
-        else:
-            self.train_dict = self.config['train_dict']
+        for attr, default in zip(
+            ['train_dict', 'valid_dict', 'test_dict'],
+            [self.path_train, self.path_valid, self.path_test],
+        ):
+            if self.config[attr] is not None:
+                self.logger.debug(f"Init {attr} from a passed dict")
+                setattr(self, attr, self.config[attr])
+                continue
+            maybe_cache = join(
+                self.config['cache_dir'],
+                f"{self.dataset_name}_explicit_{attr}.npy",
+            )
+            if os.path.exists(maybe_cache) and self.config['if_cache']:
+                self.logger.warning(f"reading {attr} from {maybe_cache}")
+                setattr(self, attr, np.load(maybe_cache))
+            else:
+                setattr(self, attr, self.load_file_as_np(default))
+                if self.config['if_cache']:
+                    np.save(maybe_cache, getattr(self, attr))
 
-        if self.config['test_dict'] is None:
-            self.test_dict = self.load_file_as_dataFrame(self.path_test)
-        else:
-            self.test_dict = self.config['test_dict']
-
-        if self.config['valid_dict'] is None:
-            self.valid_dict = self.load_file_as_dataFrame(self.path_valid)
-        else:
-            self.valid_dict = self.config['valid_dict']
         if self.remap_enable:
             unique_user = np.unique(
                 np.concatenate(
@@ -81,6 +89,8 @@ class ExplicitData(BaseDataset):
             )
             + 1
         )
+        self.n_users = int(self.n_users)
+        self.n_items = int(self.n_items)
 
         self.train_size = len(self.train_dict)
         self.valid_size = len(self.valid_dict)
@@ -88,7 +98,7 @@ class ExplicitData(BaseDataset):
 
         self.train_mat = self.to_matrix(self.train_dict, self.n_users, self.n_items)
 
-    def load_file_as_dataFrame(self, file):
+    def load_file_as_np(self, file):
         self.logger.debug("\nload data from %s ..." % file)
 
         train_data = pd.read_csv(file, engine='python', sep=self.sep)
@@ -102,6 +112,9 @@ class ExplicitData(BaseDataset):
 
     def to_matrix(self, kv_array, n_users, n_items):
         row, col, rating = kv_array[:, 0], kv_array[:, 1], kv_array[:, 2]
+        row = row.astype("int64")
+        col = col.astype("int64")
+        rating = rating.astype("float32")
         # implicit_rating = (rating >= self.threshold).astype("int")
 
         matrix = csr_matrix((rating, (row, col)), shape=(n_users, n_items)).toarray()
@@ -177,7 +190,7 @@ class ExplicitData(BaseDataset):
         # TODO add injection for explicit data
         return super().inject_data(mode, data)
 
-    def partial_sample(self, **kwargs) -> 'BaseDataset':
+    def partial_sample(self, **kwargs) -> 'BaseData':
         assert "user_ratio" in kwargs, "Expect to have [user_ratio]"
         user_ratio = kwargs['user_ratio']
 
@@ -205,4 +218,5 @@ class ExplicitData(BaseDataset):
             test_dict=new_test_dict,
             valid_dict=new_valid_dict,
             remap_enable=True,
+            if_cache=False,
         )

@@ -1,5 +1,5 @@
 import os
-from .base import BaseDataset
+from .base import BaseData
 from ..default import DATASET
 from ..utils import VarDim, get_logger, check_dir_or_make
 import torch
@@ -74,7 +74,7 @@ def pairwise_sample(dataset):
     return np.array(S)
 
 
-def pointwise_sample(dataset: BaseDataset, negative_num_each_interaction):
+def pointwise_sample(dataset: BaseData, negative_num_each_interaction):
     data = []
     train_dict = dataset.info_describe()['train_dict']
     n_items = dataset.info_describe()['n_items']
@@ -125,7 +125,7 @@ def convert2dict(file: str, filter_num):
         return npy2dict(file)
 
 
-class ImplicitData(BaseDataset):
+class ImplicitData(BaseData):
     def __init__(self, **config):
         self.config = config
         self.logger = get_logger(
@@ -144,11 +144,21 @@ class ImplicitData(BaseDataset):
             ['train_dict', 'valid_dict', 'test_dict'],
             [train_file, valid_file, test_file],
         ):
-            if self.config[attr] is None:
-                setattr(self, attr, convert2dict(default, self.config['rating_filter']))
-            else:
+            if self.config[attr] is not None:
                 self.logger.debug(f"Init {attr} from a passed dict")
                 setattr(self, attr, self.config[attr])
+                continue
+            maybe_cache = join(
+                self.config['cache_dir'],
+                f"{self.dataset_name}_implicit_{attr}.npy",
+            )
+            if os.path.exists(maybe_cache) and self.config['if_cache']:
+                self.logger.warning(f"reading {attr} from {maybe_cache}")
+                setattr(self, attr, np.load(maybe_cache, allow_pickle=True).item())
+            else:
+                setattr(self, attr, convert2dict(default, self.config['rating_filter']))
+                if self.config['if_cache']:
+                    np.save(maybe_cache, getattr(self, attr))
 
     def _init_data(self):
         self.n_users = 0
@@ -479,7 +489,7 @@ class ImplicitData(BaseDataset):
             return self.reset(train_dict=new_train_dict, if_cache=False)
         raise NotImplementedError(f"Injection not supported in {data_mode} mode")
 
-    def partial_sample(self, **kwargs) -> 'BaseDataset':
+    def partial_sample(self, **kwargs) -> 'BaseData':
         # TODO return the sampled implicit feedback, but attacker may want ratings
         return super().partial_sample(**kwargs)
         assert "user_ratio" in kwargs, "Expect to have [user_ratio]"

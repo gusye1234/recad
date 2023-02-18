@@ -3,12 +3,14 @@ from .base import BaseAttacker
 import math
 import torch
 from torch import nn
+import torch.nn.functional as F
+from torch import optim
 import numpy as np
 from ...default import MODEL
 from ...utils import pick_optim, VarDim
 
 
-class Aush(BaseAttacker):
+class AIA(BaseAttacker):
     def __init__(self, **config) -> None:
         super().__init__()
 
@@ -24,7 +26,22 @@ class Aush(BaseAttacker):
         self.build_network()
 
     def build_network(self):
-        pass
+        sampled_idx = np.random.choice(
+            np.where(np.sum(self.train_array > 0, 1) >= self.filler_num)[0],
+            self.attack_num,
+        )
+        templates = self.train_array[sampled_idx]
+        for idx, template in enumerate(templates):
+            fillers = np.where(template)[0]
+            np.random.shuffle(fillers)
+            for iid in fillers[self.filler_num :]:
+                templates[idx][iid] = 0.0
+        self.real_template = torch.tensor(templates).type(torch.float).to(self.device)
+        self.netG = RecsysGenerator(self.device, self.real_template).to(self.device)
+
+        self.G_optimizer = pick_optim(self.config['optim_g'])(
+            self.parameters(), lr=self.config['lr_g']
+        )
 
     @classmethod
     def from_config(cls, **kwargs):
@@ -63,15 +80,35 @@ class Aush(BaseAttacker):
             batch_set_idx = dp['users']
             real_profiles = dp['users_mat']
 
-        return (
-            np.mean(d_losses),
-            np.mean(g_loss_rec_l),
-            np.mean(g_loss_shilling_l),
-            np.mean(g_loss_gan_l),
-        )
+        return
 
     def generate_fake(self, **kwargs):
         pass
+
+
+class WeightedMF(nn.Module):
+    def __init__(self, n_users, n_items, hidden_dim):
+        super(WeightedMF, self).__init__()
+
+        self.n_users = n_users
+        self.n_items = n_items
+        self.dim = hidden_dim
+
+        self.Q = nn.Parameter(
+            torch.zeros([self.n_items, self.dim]).normal_(mean=0, std=0.1)
+        )
+        self.P = nn.Parameter(
+            torch.zeros([self.n_users, self.dim]).normal_(mean=0, std=0.1)
+        )
+        self.params = nn.ParameterList([self.Q, self.P])
+
+    def forward(self, user_id=None, item_id=None):
+        if user_id is None and item_id is None:
+            return torch.mm(self.P, self.Q.t())
+        if user_id is not None:
+            return torch.mm(self.P[[user_id]], self.Q.t())
+        if item_id is not None:
+            return torch.mm(self.P, self.Q[[item_id]].t())
 
 
 class BaseTrainer(object):
@@ -151,17 +188,10 @@ class BaseTrainer(object):
 
     def train_epoch_wrapper(self, train_data, epoch_num):
         """Wrapper for train_epoch with some logs."""
-        time_st = time.time()
         epoch_loss = self.train_epoch(train_data)
-        print(
-            "Training [{:.1f} s], epoch: {}, loss: {:.4f}".format(
-                time.time() - time_st, epoch_num, epoch_loss
-            )
-        )
 
     def evaluate_epoch(self, train_data, test_data, epoch_num):
         """Evaluate model performance on test data."""
-        t1 = time.time()
 
         n_rows = train_data.shape[0]
         n_evaluate_users = test_data.shape[0]
@@ -213,7 +243,6 @@ class BaseTrainer(object):
                 result = self.evaluate_epoch(train_data, test_data, epoch_num)
 
         # Load best model and evaluate on test data.
-        print("Loading best model checkpoint.")
         self.restore(best_checkpoint_path)
         self.evaluate_epoch(train_data, test_data, -1)
         return
@@ -283,7 +312,6 @@ class WMFTrainer(BaseTrainer):
         model = self.net.to(self.device)
         #
         for i in range(1, epoch_num - unroll_steps + 1):
-            t1 = time.time()
             np.random.shuffle(idx_list)
             model.train()
             epoch_loss = 0.0
@@ -302,19 +330,9 @@ class WMFTrainer(BaseTrainer):
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
-            if self.verbose:
-                print(
-                    "Training [{:.1f} s], epoch: {}, loss: {:.4f}".format(
-                        time.time() - t1, i, epoch_loss
-                    ),
-                    flush=True,
-                )
 
         with higher.innerloop_ctx(model, self.optimizer) as (fmodel, diffopt):
-            if self.verbose:
-                print("Switching to higher mode...")
             for i in range(epoch_num - unroll_steps + 1, epoch_num + 1):
-                t1 = time.time()
                 np.random.shuffle(idx_list)
                 fmodel.train()
                 epoch_loss = 0.0
@@ -331,23 +349,6 @@ class WMFTrainer(BaseTrainer):
                     # ====================================
                     epoch_loss += loss.item()
                     diffopt.step(loss)
-                if self.verbose:
-                    print(
-                        "Training (higher mode) [{:.1f} s],"
-                        " epoch: {}, loss: {:.4f}".format(
-                            time.time() - t1, i, epoch_loss
-                        ),
-                        flush=True,
-                    )
-            #
-            if self.verbose:
-                print(
-                    "Finished surrogate model training,"
-                    " {} copies of surrogate model params.".format(
-                        len(fmodel._fast_params)
-                    ),
-                    flush=True,
-                )
 
             fmodel.eval()
             predictions = fmodel()
@@ -381,3 +382,47 @@ class WMFTrainer(BaseTrainer):
             return recommendations, torch.cat(all_preds, dim=0).cpu()
         else:
             return recommendations
+
+
+class BaseGenerator(nn.Module):
+    def __init__(self, device, input_dim):
+        super(BaseGenerator, self).__init__()
+        #
+        self.input_dim = input_dim
+        self.device = device
+
+        """helper_tensor"""
+
+        self.epsilon = torch.tensor(1e-4).to(self.device)  # 计算boundary
+        self.helper_tensor = torch.tensor(2.5).to(device)
+        pass
+
+    def project(self, fake_tensor):
+        fake_tensor.data = torch.round(fake_tensor)
+        # fake_tensor.data = torch.where(fake_tensor < 1, torch.ones_like(fake_tensor).to(self.device), fake_tensor)
+        fake_tensor.data = torch.where(
+            fake_tensor < 0, torch.zeros_like(fake_tensor).to(self.device), fake_tensor
+        )
+        fake_tensor.data = torch.where(
+            fake_tensor > 5, torch.tensor(5.0).to(self.device), fake_tensor
+        )
+        #
+        return fake_tensor
+
+    def forward(self, input):
+        raise NotImplementedError
+
+
+class RecsysGenerator(BaseGenerator):
+    def __init__(self, device, init_tensor):
+        super(RecsysGenerator, self).__init__(device, init_tensor.shape[1])
+        """
+        fake_parameter
+        """
+        fake_tensor = init_tensor.clone().detach().requires_grad_(True)
+        self.fake_parameter = torch.nn.Parameter(fake_tensor, requires_grad=True)
+        self.register_parameter("fake_tensor", self.fake_parameter)
+        pass
+
+    def forward(self, input=None):
+        return None, self.project(self.fake_parameter * (input > 0))
