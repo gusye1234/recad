@@ -1,17 +1,18 @@
 <div align="center">
-  <h1>reck</h1>
+  <h1>RecAD</h1>
   <p><strong>A unified framework for recommender system attacking</strong></p>
       <p>
-    <a href="https://github.com/gusye1234/reck/blob/main/todo.md">
+    <a href="https://github.com/gusye1234/recad/blob/main/todo.md">
       <img src="https://img.shields.io/badge/stability-unstable-yellow.svg">
     </a>
   </p>
 </div>
+
 ### Install 
 
 ```
-git clone https://github.com/gusye1234/reck.git
-cd reck
+git clone https://github.com/gusye1234/recad.git
+cd recad
 pip install -e "."
 ```
 
@@ -25,19 +26,19 @@ python from_command.py --attack="aush" --victim="lightgcn"
 
 Or you can write your own script:
 ```python
-import reck
+import recad
 
 # quickly asscess the dataset with implicit feedback
-data = reck.dataset.from_config("implicit", dataset_name, need_graph=True)
+data = recad.dataset.from_config("implicit", dataset_name, need_graph=True)
 
 # sample part of the explicit dataset as the attack data
-attack_data = reck.dataset.from_config("explicit", dataset_name).partial_sample(
+attack_data = recad.dataset.from_config("explicit", dataset_name).partial_sample(
     user_ratio=0.2
 )
 
 # set up models config, and later will be instantiated in workflow
-rec_model = reck.model.from_config("victim", "lightgcn")
-attack_model = reck.model.from_config("attacker", "aush")
+rec_model = recad.model.from_config("victim", "lightgcn")
+attack_model = recad.model.from_config("attacker", "aush")
 
 
 config = {
@@ -47,40 +48,40 @@ config = {
     "attacker": attack_model,
     "rec_epoch": 20,
 }
-workflow = reck.workflow.Normal.from_config(**config)
+workflow = recad.workflow.Normal.from_config(**config)
 # run the attacking
 workflow.execute()
 ```
 
 ### Have a look
 
-`reck` is designed to help users use and debug interactively.
+`recad` is designed to help users use and debug interactively.
 
 ```python
-import reck
+import recad
 
 # how many datasets we support?
-print(reck.print_datasets())
+print(recad.print_datasets())
 
 # how many models we support?
-print(reck.print_models())
+print(recad.print_models())
 ```
 
 For each component, we support a `from_config` method:
 
 ```python
-import reck
+import recad
 
-dataset = reck.dataset.from_config("ml1m")
+dataset = recad.dataset.from_config("ml1m")
 
 # lazy init, can't function
-attack_model = reck.model.from_config("attack", "random")
+attack_model = recad.model.from_config("attack", "random")
 # actually init
-attack_model = reck.model.from_config("attack", "random", dataset=dataset).I()
+attack_model = recad.model.from_config("attack", "random", dataset=dataset).I()
 ..
 ```
 
-Confused about what a component is doing? Each component in `reck` will have a `print_help` method to return the input/output information:
+Confused about what a component is doing? Each component in `recad` will have a `print_help` method to return the input/output information:
 
 ```python
 dataset.print_help()

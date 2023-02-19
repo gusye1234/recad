@@ -4,10 +4,10 @@ with open('readme.md', 'r') as fh:
     long_description = fh.read()
 
 setup(
-    name='reck',
+    name='recad',
     version='0.0.1',
     author='Jianbai Ye',
-    packages=['reck'],
+    packages=['recad'],
     description='A unified framework for recommender system attacking',
     long_description=long_description,
     long_description_content_type='text/markdown',

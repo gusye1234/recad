@@ -1,13 +1,13 @@
 import sys
 
 sys.path.append("..")
-import reck
+import recad
 import logging
 import argparse
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run reck")
+    parser = argparse.ArgumentParser(description="Run recad")
     parser.add_argument(
         '--data', type=str, default="ml1m", choices=['ml1m', 'yelp', 'game']
     )
@@ -26,19 +26,19 @@ print("Receiving", ARG)
 dataset_name = ARG.data
 
 config = {
-    "victim_data": reck.dataset.from_config(
+    "victim_data": recad.dataset.from_config(
         "implicit", dataset_name, need_graph=True, if_cache=True
     ),
-    "attack_data": reck.dataset.from_config(
+    "attack_data": recad.dataset.from_config(
         "explicit", dataset_name, if_cache=True
     ).partial_sample(
         user_ratio=0.2,
     ),
-    "victim": reck.model.from_config("victim", ARG.victim),
-    "attacker": reck.model.from_config("attacker", ARG.attack),
+    "victim": recad.model.from_config("victim", ARG.victim),
+    "attacker": recad.model.from_config("attacker", ARG.attack),
     "rec_epoch": ARG.rec_epoch,
     "attack_epoch": ARG.attack_epoch,
 }
-workflow = reck.workflow.Normal.from_config(**config)
+workflow = recad.workflow.Normal.from_config(**config)
 workflow.print_help()
 workflow.execute()
