@@ -3,15 +3,13 @@ from abc import ABC, abstractmethod
 from functools import partial
 from copy import copy
 from ..default import WORKFLOW
-from ..utils import get_logger, parse_args, user_side_check
-from tabulate import tabulate
+from ..utils import get_logger, parse_args, user_side_check, type_if_long
+from pprint import pprint
 
 logger = get_logger(__name__)
 
 
 class BaseWorkflow(ABC):
-    fmt_tab = partial(tabulate, headers='firstrow', tablefmt='fancy_grid')
-
     @classmethod
     @abstractmethod
     def from_config(cls, name, arg_string, user_args, user_config):
@@ -36,11 +34,6 @@ class BaseWorkflow(ABC):
         return cls(**default_config)
 
     @abstractmethod
-    def input_describe(self):
-        """return the types of datasets and models this workflow needs"""
-        raise NotImplementedError
-
-    @abstractmethod
     def info_describe(self):
         """return the types of datasets and models this workflow needs"""
         raise NotImplementedError
@@ -49,3 +42,15 @@ class BaseWorkflow(ABC):
     def execute(self):
         """return the types of datasets and models this workflow needs"""
         raise NotImplementedError
+
+    def print_help(self, **kwargs) -> str:
+        info_des = self.info_describe()
+        assert isinstance(
+            info_des, dict
+        ), "Wrong return type of info_describe, expected Dict"
+        for k, v in info_des.items():
+            if k == 'batch_describe':
+                continue
+            v = type_if_long(v)
+            info_des[k] = v
+        pprint(info_des)

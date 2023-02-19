@@ -25,27 +25,20 @@ print("Receiving", ARG)
 
 dataset_name = ARG.data
 
-attack_data = reck.dataset.from_config("explicit", dataset_name).partial_sample(
-    user_ratio=0.2
-)
-# attack_data.print_help()
-data = reck.dataset.from_config(
-    "implicit", dataset_name, need_graph=True, if_cache=True
-)
-# data.print_help()
-
-rec_model = reck.model.from_config("victim", ARG.victim, dataset=data)
-
-attack_model = reck.model.from_config("attacker", ARG.attack, dataset=attack_data)
-
 config = {
-    "victim_data": data,
-    "attack_data": attack_data,
-    "victim": rec_model,
-    "attacker": attack_model,
+    "victim_data": reck.dataset.from_config(
+        "implicit", dataset_name, need_graph=True, if_cache=True
+    ),
+    "attack_data": reck.dataset.from_config(
+        "explicit", dataset_name, if_cache=True
+    ).partial_sample(
+        user_ratio=0.2,
+    ),
+    "victim": reck.model.from_config("victim", ARG.victim),
+    "attacker": reck.model.from_config("attacker", ARG.attack),
     "rec_epoch": ARG.rec_epoch,
     "attack_epoch": ARG.attack_epoch,
 }
 workflow = reck.workflow.Normal.from_config(**config)
-
+workflow.print_help()
 workflow.execute()

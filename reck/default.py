@@ -199,7 +199,7 @@ def print_models():
 
 WORKFLOW = {
     "normal": {
-        "cache_dir": check_dir_or_make(".", "workflows_results", "normal"),
+        "cache_dir": use_dir(".", "workflows_results", "normal"),
         "rec_epoch": 400,
         "attack_epoch": 100,
         "target_id_list": [

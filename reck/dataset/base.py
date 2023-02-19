@@ -1,18 +1,16 @@
-from tabulate import tabulate
 from functools import partial
 from typing import Dict, Generator
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from ..default import DATASET
 from ..utils import strip_str, type_if_long, parse_args, get_logger
+from pprint import pprint
 from copy import copy
 
 logger = get_logger(__name__)
 
 
 class BaseData(ABC):
-    fmt_tab = partial(tabulate, headers='firstrow', tablefmt='fancy_grid')
-
     @classmethod
     @abstractmethod
     def from_config(cls, scope, name, arg_string, user_config):
@@ -33,20 +31,6 @@ class BaseData(ABC):
         instan._init_config = default_config
         instan.__init__(**default_config)
         return instan
-
-    @abstractmethod
-    def batch_describe(self) -> Dict:
-        """return the data description of this dataset
-        for example:
-            {
-                "X": (torch.float32, (-1, 224, 224, 3)),
-                "Y": (torch.float32, (-1, 965)),
-            }
-        :raise: NotImplementedError
-
-        :return: a dict of each data field
-        """
-        raise NotImplementedError
 
     @abstractmethod
     def info_describe(self) -> Dict:
@@ -122,18 +106,10 @@ class BaseData(ABC):
         assert isinstance(
             info_des, dict
         ), "Wrong return type of info_describe, expected Dict"
-        cols = [(k, type_if_long(v)) for k, v in info_des.items()]
-        print(f"({self.dataset_name})Information:")
-        print(BaseData.fmt_tab(cols))
-
-        batch_des = self.batch_describe()
-        assert isinstance(
-            batch_des, dict
-        ), "Wrong return type of batch_describe, expected Dict"
-
-        headers = [["name", "type", "shape"]]
-        for k, v in batch_des.items():
-            assert len(v) == 2
-            headers.append((k, str(v[0]), str(v[1])))
-        print(f"({self.dataset_name})Batch data:")
-        print(BaseData.fmt_tab(headers))
+        info_des['dataset_name'] = self.dataset_name
+        for k, v in info_des.items():
+            if k == 'batch_describe':
+                continue
+            v = type_if_long(v)
+            info_des[k] = v
+        pprint(info_des)

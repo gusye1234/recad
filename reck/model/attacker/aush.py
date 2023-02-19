@@ -39,6 +39,9 @@ class Aush(BaseAttacker):
         user_args = "dataset"
         return super().from_config("aush", args, user_args, kwargs)
 
+    def info_describe(self):
+        return super().info_describe()
+
     def input_describe(self):
         return {"train_step": {"target_id_list": (list, VarDim())}}
 

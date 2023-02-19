@@ -2,7 +2,8 @@ import os
 import torch
 from torch import optim
 from pathlib import Path
-from functools import wraps
+from functools import wraps, partial
+from tabulate import tabulate
 import numpy as np
 import logging
 from collections.abc import Iterable
@@ -16,6 +17,13 @@ AUTO_INSTANTIATE = False
 
 class NotInstantiatedError(Exception):
     pass
+
+
+class InstantiateFail(Exception):
+    pass
+
+
+fmt_tab = partial(tabulate, headers='firstrow', tablefmt='fancy_grid')
 
 
 def set_auto_instantiate(value):
@@ -147,8 +155,11 @@ def lazy_init_func(init_func):
     @wraps(init_func)
     def empty_init(self, *arg, init_args_kwargs_ready=False, **kwargs):
         if init_args_kwargs_ready or AUTO_INSTANTIATE:
-            init_func(self, *arg, **kwargs)
-            self._is_instantiate = True
+            try:
+                self._is_instantiate = True
+                init_func(self, *arg, **kwargs)
+            except Exception as e:
+                raise InstantiateFail(str(type(e)))
         else:
             self._not_allowed_lazy_arg = arg
             self._not_allowed_lazy_kwargs = kwargs
@@ -184,12 +195,12 @@ def instantiate(self, **kwargs):
     )
 
 
-def lazy_init(cls):
+def lazy_init(cls, bound_name="I"):
     if not hasattr(cls, "_wrap_lazy_init"):
         setattr(cls, "_wrap_lazy_init", False)
     assert (
-        cls._wrap_lazy_init or "instantiate" not in cls.__dict__
-    ), f"lazy_init will bound a method called instantiate, which is already existed in {cls}"
+        cls._wrap_lazy_init or bound_name not in cls.__dict__
+    ), f"lazy_init will bound a method called {bound_name}, which is already existed in {cls}"
     if getattr(cls, "_wrap_lazy_init"):
         return cls
     for attr in cls.__dict__:  # there's propably a better way to do this
@@ -200,5 +211,5 @@ def lazy_init(cls):
         if callable(attr_o) and is_self_bound(attr_o):
             setattr(cls, attr, enable_func(attr_o))
     setattr(cls, "_wrap_lazy_init", True)
-    setattr(cls, "I", instantiate)
+    setattr(cls, bound_name, instantiate)
     return cls

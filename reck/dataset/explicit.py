@@ -55,7 +55,7 @@ class ExplicitData(BaseData):
                 f"{self.dataset_name}_explicit_{attr}.npy",
             )
             if os.path.exists(maybe_cache) and self.config['if_cache']:
-                self.logger.warning(f"reading {attr} from {maybe_cache}")
+                self.logger.info(f"loading cached {attr}")
                 setattr(self, attr, np.load(maybe_cache))
             else:
                 setattr(self, attr, self.load_file_as_np(default))
@@ -150,6 +150,7 @@ class ExplicitData(BaseData):
             "test_interactions": self.test_size,
             "train_kvr": self.train_dict,
             "train_mat": self.train_mat,
+            "batch_describe": self.batch_describe(),
         }
         if self.remap_enable:
             infos['user_map'] = self.user_map

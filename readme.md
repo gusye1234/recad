@@ -35,9 +35,9 @@ attack_data = reck.dataset.from_config("explicit", dataset_name).partial_sample(
     user_ratio=0.2
 )
 
-# set up models, which is a torch.nn.Module
-rec_model = reck.model.from_config("victim", "lightgcn", dataset=data)
-attack_model = reck.model.from_config("attacker", "aush", dataset=attack_data)
+# set up models config, and later will be instantiated in workflow
+rec_model = reck.model.from_config("victim", "lightgcn")
+attack_model = reck.model.from_config("attacker", "aush")
 
 
 config = {
@@ -66,13 +66,17 @@ print(reck.print_datasets())
 print(reck.print_models())
 ```
 
-For each component, we support a `from_config` method to instance it:
+For each component, we support a `from_config` method:
 
 ```python
 import reck
 
 dataset = reck.dataset.from_config("ml1m")
+
+# lazy init, can't function
 attack_model = reck.model.from_config("attack", "random")
+# actually init
+attack_model = reck.model.from_config("attack", "random", dataset=dataset).I()
 ..
 ```
 

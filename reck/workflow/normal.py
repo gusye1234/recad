@@ -7,7 +7,7 @@ from ..dataset import BaseData
 from ..model.attacker import BaseAttacker
 from ..model.victim import BaseVictim
 from ..default import WORKFLOW
-from ..utils import check_dir_or_make, pick_optim, get_logger, dict2list_table
+from ..utils import check_dir_or_make, pick_optim, get_logger, dict2list_table, fmt_tab
 from collections import OrderedDict
 import logging
 from tqdm import tqdm
@@ -27,8 +27,10 @@ class Normal(BaseWorkflow):
                 ]
             ),
         )
-        self.attacker: BaseAttacker = config['attacker']
-        self.victim: BaseVictim = config['victim']
+        self.attacker: BaseAttacker = config['attacker'].I(
+            dataset=config['attack_data']
+        )
+        self.victim: BaseVictim = config['victim'].I(dataset=config['victim_data'])
         self.victim_data: BaseData = config['victim_data']
         self.logger = get_logger(__name__, level=self.c['logging_level'])
 
@@ -47,7 +49,10 @@ class Normal(BaseWorkflow):
         }
 
     def info_describe(self):
-        return {'target_id_list': self.c['target_id_list']}
+        return {
+            'target_id_list': self.c['target_id_list'],
+            'input_describe': self.input_describe(),
+        }
 
     def user_item_model_generate(self, model, data_dict, topks, target_ids, device):
         preds = []
@@ -152,12 +157,13 @@ class Normal(BaseWorkflow):
         for i, k in enumerate(topks):
             results[f"HR@{k}"] = np.mean(pred_results[:, 2 + i])
             results[f"HR@{k} after attack"] = np.mean(pred_results_fake[:, 2 + i])
-        print(Normal.fmt_tab(dict2list_table(results)))
+        print(fmt_tab(dict2list_table(results)))
 
     def execute(self):
         self.logger.info(
             f"Normal attacking, with dataset {self.victim_data.dataset_name}, victim model {self.victim.model_name}, attack model {self.attacker.model_name}, on device {self.c['device']}"
         )
+
         self.victim = self.victim.to(self.c['device'])
         self.attacker = self.attacker.to(self.c['device'])
 

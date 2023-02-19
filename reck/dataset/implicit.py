@@ -153,7 +153,7 @@ class ImplicitData(BaseData):
                 f"{self.dataset_name}_implicit_{attr}.npy",
             )
             if os.path.exists(maybe_cache) and self.config['if_cache']:
-                self.logger.warning(f"reading {attr} from {maybe_cache}")
+                self.logger.info(f"loading cached {attr}")
                 setattr(self, attr, np.load(maybe_cache, allow_pickle=True).item())
             else:
                 setattr(self, attr, convert2dict(default, self.config['rating_filter']))
@@ -246,7 +246,7 @@ class ImplicitData(BaseData):
             )
             if os.path.exists(maybe_cache) and self.config['if_cache']:
                 pre_adj_mat = sp.load_npz(maybe_cache)
-                self.logger.warning(
+                self.logger.info(
                     f"successfully loaded adj_mat from {maybe_cache}, this could cause the inconsistency of the dataset"
                 )
                 norm_adj = pre_adj_mat
@@ -401,6 +401,7 @@ class ImplicitData(BaseData):
             "train_dict": self.train_dict,
             "valid_dict": self.valid_dict,
             "test_dict": self.test_dict,
+            "batch_describe": self.batch_describe(),
         }
         if self.config['need_graph']:
             infos['graph'] = self.Graph
