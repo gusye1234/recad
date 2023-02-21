@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import os
 from os.path import join
-from ..utils import get_logger, VarDim
+from ..utils import get_logger, VarDim, check_dir_or_make
 from ..default import DATASET
 from scipy.sparse import csr_matrix
 
@@ -59,6 +59,7 @@ class ExplicitData(BaseData):
                 setattr(self, attr, np.load(maybe_cache))
             else:
                 setattr(self, attr, self.load_file_as_np(default))
+                check_dir_or_make(self.config['cache_dir'])
                 if self.config['if_cache']:
                     np.save(maybe_cache, getattr(self, attr))
 
@@ -165,7 +166,7 @@ class ExplicitData(BaseData):
             target_id_list = config.get("target_id_list", [])
             filler_num = config['filler_num']
             batch_size = self.config['batch_size']
-            mask_array = (self.train_mat > 0).astype(np.float)
+            mask_array = (self.train_mat > 0).astype('float')
             mask_array[:, selected_ids + target_id_list] = 0
             available_idx = np.where(np.sum(mask_array, 1) >= filler_num)[0]
             available_idx = np.random.permutation(available_idx)
@@ -199,17 +200,17 @@ class ExplicitData(BaseData):
         np.random.shuffle(users)
         left_users = users[: int(len(users) * user_ratio)]
 
-        left_index = np.zeros(len(self.train_dict), dtype=np.bool)
+        left_index = np.zeros(len(self.train_dict), dtype="bool")
         for u in left_users:
             left_index = np.logical_or(left_index, self.train_dict[:, 0] == u)
         new_train_dict = self.train_dict[left_index]
 
-        left_index = np.zeros(len(self.test_dict), dtype=np.bool)
+        left_index = np.zeros(len(self.test_dict), dtype="bool")
         for u in left_users:
             left_index = np.logical_or(left_index, self.test_dict[:, 0] == u)
         new_test_dict = self.test_dict[left_index]
 
-        left_index = np.zeros(len(self.valid_dict), dtype=np.bool)
+        left_index = np.zeros(len(self.valid_dict), dtype="bool")
         for u in left_users:
             left_index = np.logical_or(left_index, self.valid_dict[:, 0] == u)
         new_valid_dict = self.valid_dict[left_index]

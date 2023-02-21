@@ -5,8 +5,12 @@
     <a href="https://github.com/gusye1234/recad/blob/main/todo.md">
       <img src="https://img.shields.io/badge/stability-unstable-yellow.svg">
     </a>
+    <a href="https://github.com/gusye1234/recad/actions?query=workflow%3Ademo">
+      <img src="https://github.com/gusye1234/recad/actions/workflows/demo.yaml/badge.svg">
+    </a>
   </p>
 </div>
+
 
 ### Install 
 

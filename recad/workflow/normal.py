@@ -7,19 +7,19 @@ from ..dataset import BaseData
 from ..model.attacker import BaseAttacker
 from ..model.victim import BaseVictim
 from ..default import WORKFLOW
-from ..utils import check_dir_or_make, pick_optim, get_logger, dict2list_table, fmt_tab
+from ..utils import use_dir, pick_optim, get_logger, dict2list_table, fmt_tab, tqdm
 from collections import OrderedDict
 import logging
-from tqdm import tqdm
 
 
 class Normal(BaseWorkflow):
     def __init__(self, **config):
         self.c = config
-        self.saving_dir = check_dir_or_make(
+        self.saving_dir = use_dir(
             config['cache_dir'],
             "_".join(
                 [
+                    "normal",
                     config['victim_data'].dataset_name,
                     config['attack_data'].dataset_name,
                     config['victim'].model_name,
@@ -200,7 +200,8 @@ class Normal(BaseWorkflow):
         if self.c['logging_level'] == logging.DEBUG:
             fake_dataset.print_help()
 
-        fake_victim = self.victim.reset().to(self.c['device'])
+        fake_victim = self.victim.reset().I(dataset=fake_dataset)
+        fake_victim = fake_victim.to(self.c['device'])
         self.normal_train(
             **{
                 'model': fake_victim,

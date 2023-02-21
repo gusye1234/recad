@@ -6,12 +6,13 @@ from functools import wraps, partial
 from tabulate import tabulate
 import numpy as np
 import logging
+from tqdm import tqdm as ori_tqdm
 from collections.abc import Iterable
 
 DEFAULT_LEVEL = logging.INFO
 DEFAULT_FORMAT = '%(asctime)s %(name)s %(levelname)s %(message)s'
 DEFAULT_DATE = '%H:%M:%S'
-
+TQDM = True
 AUTO_INSTANTIATE = False
 
 
@@ -24,6 +25,27 @@ class InstantiateFail(Exception):
 
 
 fmt_tab = partial(tabulate, headers='firstrow', tablefmt='fancy_grid')
+
+
+class MockTqdm:
+    def __init__(self, generator):
+        self.gen = iter(generator)
+
+    def __iter__(self):
+        return self.gen
+
+    def __next__(self):
+        return next(self.gen)
+
+    def set_description(self, *args, **kwargs):
+        return None
+
+
+def tqdm(generator, *args, **kwargs):
+    if TQDM:
+        return ori_tqdm(generator, *args, **kwargs)
+    else:
+        return MockTqdm(generator)
 
 
 def set_auto_instantiate(value):
@@ -185,17 +207,25 @@ def is_self_bound(func):
     return func.__code__.co_varnames[0] == "self"
 
 
-def instantiate(self, **kwargs):
-    if self._is_instantiate:
-        return self
-    config = self._not_allowed_lazy_kwargs
-    config.update(kwargs)
-    return type(self)(
-        *self._not_allowed_lazy_arg, init_args_kwargs_ready=True, **config
-    )
+def instantiate(record_attrs=[]):
+    def I(self, **kwargs):
+        if self._is_instantiate:
+            return self
+        config = self._not_allowed_lazy_kwargs
+        config.update(kwargs)
+
+        records = {k: getattr(self, k) for k in record_attrs}
+        instan = type(self)(
+            *self._not_allowed_lazy_arg, init_args_kwargs_ready=True, **config
+        )
+        for k, v in records.items():
+            setattr(instan, k, v)
+        return instan
+
+    return I
 
 
-def lazy_init(cls, bound_name="I"):
+def lazy_init(cls, bound_name="I", record_attrs=[]):
     if not hasattr(cls, "_wrap_lazy_init"):
         setattr(cls, "_wrap_lazy_init", False)
     assert (
@@ -211,5 +241,5 @@ def lazy_init(cls, bound_name="I"):
         if callable(attr_o) and is_self_bound(attr_o):
             setattr(cls, attr, enable_func(attr_o))
     setattr(cls, "_wrap_lazy_init", True)
-    setattr(cls, bound_name, instantiate)
+    setattr(cls, bound_name, instantiate(record_attrs=record_attrs))
     return cls

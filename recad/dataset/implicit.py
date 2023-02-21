@@ -158,6 +158,7 @@ class ImplicitData(BaseData):
             else:
                 setattr(self, attr, convert2dict(default, self.config['rating_filter']))
                 if self.config['if_cache']:
+                    check_dir_or_make(self.config['cache_dir'])
                     np.save(maybe_cache, getattr(self, attr))
 
     def _init_data(self):

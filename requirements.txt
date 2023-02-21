@@ -3,3 +3,4 @@ coloredlogs
 torch
 scipy
 tabulate
+pandas

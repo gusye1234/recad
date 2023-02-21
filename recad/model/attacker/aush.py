@@ -179,7 +179,7 @@ class Aush(BaseAttacker):
 
     def generate_fake(self, **kwargs):
         target_id_list = kwargs['target_id_list']
-        mask_array = (self.train_data_array > 0).astype(np.float)
+        mask_array = (self.train_data_array > 0).astype('float')
         mask_array[:, self.selected_ids + target_id_list] = 0
         available_idx = np.where(np.sum(mask_array, 1) >= self.filler_num)[0]
         available_idx = np.random.permutation(available_idx)

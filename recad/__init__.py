@@ -5,6 +5,7 @@ from .default import *
 from . import dataset
 from . import model
 from . import workflow
+from . import utils
 
 random.seed(SEED)
 np.random.seed(SEED)

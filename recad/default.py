@@ -199,7 +199,6 @@ def print_models():
 
 WORKFLOW = {
     "normal": {
-        "cache_dir": use_dir(".", "workflows_results", "normal"),
         "rec_epoch": 400,
         "attack_epoch": 100,
         "target_id_list": [
@@ -212,3 +211,4 @@ WORKFLOW = {
 
 _decorate_config(WORKFLOW, "logging_level", logging.INFO, 2)
 _decorate_config(WORKFLOW, "device", DEVICE, 2)
+_decorate_config(WORKFLOW, "cache_dir", use_dir(".", "workflows_results"), 2)

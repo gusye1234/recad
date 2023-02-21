@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 class BaseModel(Module, ABC):
     def __new__(cls, *args, **kwargs):
-        cls = lazy_init(cls)
+        cls = lazy_init(cls, record_attrs=['_init_config', '_model_name'])
         instan = object.__new__(cls)
         return instan
 
