@@ -53,7 +53,7 @@ workflow = recad.workflow.Normal.from_config(**config)
 workflow.execute()
 ```
 
-### Have a look
+### Docs
 
 `recad` is designed to help users use and debug interactively.
 
@@ -125,3 +125,7 @@ Install `pre-commit` first to make sure the commits you made is well-formatted:
 pip install pre-commit
 pre-commit install
 ```
+
+### Acknowledgement
+
+Thanks to the first two contributors: [@CS. Wang](https://github.com/Wcsa23187), [@Jianbai Ye](https://github.com/gusye1234)
