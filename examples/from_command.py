@@ -44,5 +44,5 @@ config = {
     "rec_epoch": ARG.rec_epoch,
     "attack_epoch": ARG.attack_epoch,
 }
-workflow = recad.workflow.Normal.from_config(**config)
+workflow = recad.workflow.from_config("no defense", **config)
 workflow.execute()

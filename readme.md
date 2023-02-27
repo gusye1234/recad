@@ -1,6 +1,5 @@
 <div align="center">
   <h1>RecAD</h1>
-  <p><strong>A unified framework for recommender system attacking</strong></p>
       <p>
     <a href="https://github.com/gusye1234/recad/blob/main/todo.md">
       <img src="https://img.shields.io/badge/stability-unstable-yellow.svg">
@@ -12,7 +11,30 @@
 </div>
 
 
-### Install 
+
+RecAD is a unified library aiming at establishing an open benchmark for recommender attack and defense. With a few line of codes, you can quickly construct a attacking pipeline. The supported modules currently include:
+
+##### Datasets
+
+* ml1m
+* yelp
+* Amazon-game
+* ...
+
+##### Victim Models
+
+* MF
+* LightGCN
+* NCF
+
+##### Attack Models
+
+* Heuristic: ranomd, average, segment, bandwagon
+* AUSH
+* AIA
+* Legup
+
+## Install 
 
 ```
 git clone https://github.com/gusye1234/recad.git
@@ -20,7 +42,7 @@ cd recad
 pip install -e "."
 ```
 
-### Quick Start
+## Quick Start
 
 Try it from command line:
 ```
@@ -30,34 +52,27 @@ python from_command.py --attack="aush" --victim="lightgcn"
 
 Or you can write your own script:
 ```python
-import recad
+from recad import dataset, model, workflow
 
-# quickly asscess the dataset with implicit feedback
-data = recad.dataset.from_config("implicit", dataset_name, need_graph=True)
-
-# sample part of the explicit dataset as the attack data
-attack_data = recad.dataset.from_config("explicit", dataset_name).partial_sample(
-    user_ratio=0.2
-)
-
-# set up models config, and later will be instantiated in workflow
-rec_model = recad.model.from_config("victim", "lightgcn")
-attack_model = recad.model.from_config("attacker", "aush")
-
-
+dataset_name = "ml1m"
 config = {
-    "victim_data": data,
-    "attack_data": attack_data,
-    "victim": rec_model,
-    "attacker": attack_model,
+    # quickly asscess the dataset with implicit feedback
+    "victim_data": dataset.from_config("implicit", dataset_name, need_graph=True),
+    # sample part of the explicit dataset as the attack data
+    "attack_data": dataset.from_config("explicit", dataset_name).partial_sample(
+        user_ratio=0.2
+    ),
+    # set up models config, and later will be instantiated in workflow
+    "victim": model.from_config("victim", "lightgcn"),
+    "attacker": model.from_config("attacker", "aush"),
     "rec_epoch": 20,
 }
-workflow = recad.workflow.Normal.from_config(**config)
+workflow = workflow.from_config("no defense", **config)
 # run the attacking
 workflow.execute()
 ```
 
-### Docs
+## Docs
 
 `recad` is designed to help users use and debug interactively.
 
@@ -121,7 +136,7 @@ dataset.print_help()
 # ╘════════════════╧═════════════╧═══════════════╛
 ```
 
-### Contribution
+## Contribution
 
 Install `pre-commit` first to make sure the commits you made is well-formatted:
 
@@ -130,6 +145,6 @@ pip install pre-commit
 pre-commit install
 ```
 
-### Acknowledgement
+## Acknowledgement
 
 Thanks to the first two contributors: [@CS. Wang](https://github.com/Wcsa23187), [@Jianbai Ye](https://github.com/gusye1234)
