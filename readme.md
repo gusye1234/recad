@@ -29,7 +29,7 @@ RecAD is a unified library aiming at establishing an open benchmark for recommen
 
 ##### Attack Models
 
-* Heuristic: ranomd, average, segment, bandwagon
+* Heuristic: random, average, segment, bandwagon
 * AUSH
 * AIA
 * Legup
