@@ -493,12 +493,12 @@ class ImplicitData(BaseData):
 
     def partial_sample(self, **kwargs) -> 'BaseData':
         # TODO return the sampled implicit feedback, but attacker may want ratings
-        return super().partial_sample(**kwargs)
         assert "user_ratio" in kwargs, "Expect to have [user_ratio]"
         user_ratio = kwargs['user_ratio']
-
+        if abs(user_ratio - 1) < 1e-9:
+            return self
         users = list(self.train_dict)
         random.shuffle(users)
         left_users = users[: int(len(users) * user_ratio)]
-        new_dict = {u: self.train_data[u] for u in left_users}
+        new_dict = {u: self.train_dict[u] for u in left_users}
         return self.reset(train_dict=new_dict)

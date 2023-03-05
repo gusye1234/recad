@@ -16,7 +16,7 @@ pushd ./examples
 for am in $attack_model; do
     for vm in $victim_model; do
         echo "Running $vm, $am in game"
-        python from_command.py --tqdm=0 --data=game --victim=$vm --attack=$am --rec_epoch=1 --attack_epoch=1
+        python from_command.py --tqdm=0 --data=game --victim=$vm --attack=$am --rec_epoch=1 --attack_epoch=1 --attack_ratio=0.05 --rec_ratio=0.1
     done
 done
 popd
