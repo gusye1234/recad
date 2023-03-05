@@ -212,3 +212,11 @@ WORKFLOW = {
 _decorate_config(WORKFLOW, "logging_level", logging.INFO, 2)
 _decorate_config(WORKFLOW, "device", DEVICE, 2)
 _decorate_config(WORKFLOW, "cache_dir", use_dir(".", "workflows_results"), 2)
+
+
+def set_device_id(cuda_id):
+    device = torch.device(f'cuda:{cuda_id}' if torch.cuda.is_available() else "cpu")
+    # TODO
+    _decorate_config(MODEL, "device", device, 3)
+    _decorate_config(WORKFLOW, "device", device, 2)
+    _decorate_config(DATASET, "device", device, 3)

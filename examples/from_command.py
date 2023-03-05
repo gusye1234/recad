@@ -19,12 +19,14 @@ def parse_args():
     parser.add_argument('--attack_epoch', type=int, default=100)
     parser.add_argument('--attack_ratio', type=float, default=0.2)
     parser.add_argument('--tqdm', type=int, default=1)
+    parser.add_argument('--cuda_id', type=int, default=0)
     return parser.parse_args()
 
 
 ARG = parse_args()
 print("Receiving", ARG)
 recad.utils.TQDM = bool(ARG.tqdm)
+recad.default.set_device_id(ARG.cuda_id)
 
 dataset_name = ARG.data
 sampling = "pointwise" if ARG.victim in ['mf', 'ncf'] else "pairwise"
