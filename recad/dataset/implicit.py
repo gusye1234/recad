@@ -123,6 +123,8 @@ def convert2dict(file: str, filter_num):
         return csv2dict(file, filter=filter_num)
     elif file.endswith(".npy"):
         return npy2dict(file)
+    else:
+        raise ValueError(f"Expect data file ends witg [csv/npy], but got {file}")
 
 
 class ImplicitData(BaseData):
