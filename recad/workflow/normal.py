@@ -190,8 +190,10 @@ class Normal(BaseWorkflow):
                 f"Skip attacker training, since {self.attacker.model_name} didn't require it"
             )
 
-        self.logger.info("Step 3. injecting fake data and re-train the recommender")
         fake_array = self.attacker.generate_fake(**self.info_describe())
+        self.logger.info(
+            f"Step 3. injecting fake data({tuple(fake_array.shape)}) and re-train the recommender"
+        )
         self.logger.debug(f"{fake_array.shape}")
         fake_dataset = self.victim_data.inject_data(
             "explicit", fake_array, filter_num=self.c['filter_num']

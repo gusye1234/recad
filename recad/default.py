@@ -1,3 +1,4 @@
+import os
 from .utils import (
     root_path,
     get_logger,
@@ -12,7 +13,7 @@ import logging
 
 _logger = get_logger(__name__)
 
-DATA_ROOT = root_path()
+DATA_ROOT = os.environ.get("RECAD_DIR", root_path())
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 _logger.info(f"data dir located at {DATA_ROOT}")
 SEED = 2023
@@ -178,6 +179,16 @@ MODEL = {
             "lr_d": 0.001,
             "optim_g": 'adam',
             "optim_d": 'adam',
+            "surrogate_model": "WMF",
+            "epoch_s": 50,
+            "unroll_steps_s": 1,
+            "hidden_dim_s": 16,
+            "lr_s": 1e-2,
+            "weight_decay_s": 1e-5,
+            "batch_size_s": 16,
+            "weight_pos_s": 1.0,
+            "weight_neg_s": 0.0,
+            "selected_ids": [62],
         },
     },
 }

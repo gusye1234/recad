@@ -10,6 +10,31 @@ from ...default import MODEL
 from ...utils import pick_optim, VarDim
 
 
+def aia_attack_loss(logits, labels):
+    log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
+    loss = -log_probs * labels
+    instance_data = labels.sum(1)
+    instance_loss = loss.sum(1)
+    # Avoid divide by zeros.
+    res = instance_loss / (instance_data + 0.1)  # PSILON)
+    return res
+
+
+def partial_update(loss, optimizer, part=0):
+    optimizer.zero_grad()
+    grad_groups = torch.autograd.grad(
+        loss, optimizer.param_groups[part]['params'], allow_unused=True
+    )
+    for para_, grad_ in zip(optimizer.param_groups[part]['params'], grad_groups):
+        if para_.grad is None:
+            para_.grad = grad_
+        else:
+            # print(grad_)
+            para_.grad.data = grad_
+
+    optimizer.step()
+
+
 class AIA(BaseAttacker):
     def __init__(self, **config) -> None:
         super().__init__()
@@ -18,11 +43,12 @@ class AIA(BaseAttacker):
         self.attack_num = config['attack_num']
         self.filler_num = config['filler_num']
         self.dataset = config['dataset']
+        self.n_users = config['dataset'].info_describe()['n_users']
         self.n_items = config['dataset'].info_describe()['n_items']
-        self.config = config
         self.device = config['device']
-        self.ZR_ratio = config['ZR_ratio']
         self.train_array = config['dataset'].info_describe()['train_mat']
+        self.surrogate = config["surrogate_model"]
+        self.config = config
         self.build_network()
 
     def build_network(self):
@@ -55,35 +81,143 @@ class AIA(BaseAttacker):
     def output_describe(self):
         return {
             "train_step": {
-                "d_losses": (float, []),
-                "g_loss_rec_l": (float, []),
-                "g_loss_shilling_l": (float, []),
-                "g_loss_gan_l": (float, []),
+                "g_losses": (float, []),
             }
         }
 
     def train_step(self, **config):
         target_id_list = config['target_id_list']
+        self.netG.train()
+        G_loss = torch.tensor(0.0).to(self.device)
+        fake_tensor = self.netG(self.real_template)
+        sur_predictions = self.get_sur_predictions(fake_tensor)
+        for target_id in target_id_list:
+            target_users = np.where(self.train_array[:, target_id] == 0)[0]
+            attack_target = np.zeros((len(target_users), self.n_items))
+            attack_target[:, target_id] = 1.0
+            attack_target = (
+                torch.from_numpy(attack_target).type(torch.float32).to(self.device)
+            )
+            higher_mask = (
+                sur_predictions[target_users]
+                >= (sur_predictions[target_users, target_id].reshape([-1, 1]))
+            ).float()
+            G_loss_sub = aia_attack_loss(
+                logits=sur_predictions[target_users] * higher_mask,
+                labels=attack_target,
+            ).mean()
+            G_loss += G_loss_sub
+        G_loss = G_loss / 10
 
-        target_users = np.where(self.train_array[:, target_id_list] == 0)[0]
-        attack_target = np.zeros((len(target_users), self.n_items))
-        attack_target[:, target_id_list] = 1.0
-        attack_target = (
-            torch.from_numpy(attack_target).type(torch.float32).to(self.device)
+        partial_update(G_loss, self.G_optimizer)
+
+        return (G_loss.cpu().item(),)
+
+    def generate_fake(self, **config):
+        target_id_list = config['target_id_list']
+        with torch.no_grad():
+            fake_tensor = self.netG(self.real_template)
+            rate = int(self.attack_num / len(target_id_list))
+            for i in range(len(target_id_list)):
+                fake_tensor[i * rate : (i + 1) * rate, target_id_list[i]] = 5
+        return fake_tensor.detach().cpu().numpy()
+
+    def get_sur_predictions(self, fake_tensor):
+        data_tensor = torch.cat(
+            [
+                torch.from_numpy(self.train_array).type(torch.float32).to(self.device),
+                fake_tensor,
+            ],
+            dim=0,
         )
 
-        for idx, dp in enumerate(
-            self.dataset.generate_batch(
-                filler_num=self.filler_num, selected_ids=self.selected_ids, **config
+        surrogate = self.surrogate
+
+        if surrogate == 'WMF':
+            sur_trainer_ = WMFTrainer(
+                n_users=self.n_users + self.attack_num,
+                n_items=self.n_items,
+                hidden_dim=self.config['hidden_dim_s'],
+                # device=self.device,
+                device=self.device,
+                lr=self.config['lr_s'],
+                weight_decay=self.config['weight_decay_s'],
+                batch_size=self.config['batch_size_s'],
+                weight_pos=self.config['weight_pos_s'],
+                weight_neg=self.config['weight_neg_s'],
+                verbose=False,
             )
-        ):
-            batch_set_idx = dp['users']
-            real_profiles = dp['users_mat']
+            epoch_num_ = self.config['epoch_s']
+            unroll_steps_ = self.config['unroll_steps_s']
+        # elif surrogate == 'ItemAE':
+        #     sur_trainer_ = ItemAETrainer(
+        #         n_users=self.n_users + self.attack_num,
+        #         n_items=self.n_items,
+        #         hidden_dims=self.config.hidden_dim_s,
+        #         device=self.device,
+        #         lr=self.config.lr_s,
+        #         l2=self.config.weight_decay_s,
+        #         batch_size=self.config.batch_size_s,
+        #         weight_pos=self.config.weight_pos_s,
+        #         weight_neg=self.config.weight_neg_s,
+        #         verbose=False)
+        #     epoch_num_ = self.config.epoch_s
+        #     unroll_steps_ = self.config.unroll_steps_s
+        # elif surrogate == 'SVDpp':
+        #     sur_trainer_ = SVDppTrainer(
+        #         n_users=self.n_users + self.attack_num,
+        #         n_items=self.n_items,
+        #         hidden_dims=[128],
+        #         device=self.device,
+        #         lr=1e-3,
+        #         l2=5e-2,
+        #         batch_size=128,
+        #         weight_alpha=20)
+        #     epoch_num_ = 10
+        #     unroll_steps_ = 1
+        # elif surrogate == 'NMF':
+        #     sur_trainer_ = NMFTrainer(
+        #         n_users=self.n_users + self.attack_num,
+        #         n_items=self.n_items,
+        #         batch_size=128,
+        #         device=self.device,
+        #     )
+        #     epoch_num_ = 50
+        #     unroll_steps_ = 1
+        # elif surrogate == 'PMF':
+        #     sur_trainer_ = PMFTrainer(
+        #         n_users=self.n_users + self.attack_num,
+        #         n_items=self.n_items,
+        #         hidden_dim=128,
+        #         device=self.device,
+        #         lr=0.0001,
+        #         weight_decay=0.1,
+        #         batch_size=self.config.batch_size_s,
+        #         momentum=0.9,
+        #         verbose=True)
+        #     epoch_num_ = 50
+        #     unroll_steps_ = 1
+        else:
+            raise ValueError(
+                f'surrogate model error : {surrogate}',
+            )
 
-        return
+        sur_predictions = sur_trainer_.fit_adv(
+            data_tensor=data_tensor, epoch_num=epoch_num_, unroll_steps=unroll_steps_
+        )
 
-    def generate_fake(self, **kwargs):
-        pass
+        # sur_test_rmse = np.mean(
+        #     (
+        #         sur_predictions[: self.n_users][self.test_array > 0]
+        #         .detach()
+        #         .cpu()
+        #         .numpy()
+        #         - self.test_array[self.test_array > 0]
+        #     )
+        #     ** 2
+        # )
+
+        return sur_predictions
 
 
 class WeightedMF(nn.Module):
@@ -425,4 +559,4 @@ class RecsysGenerator(BaseGenerator):
         pass
 
     def forward(self, input=None):
-        return None, self.project(self.fake_parameter * (input > 0))
+        return self.project(self.fake_parameter * (input > 0))

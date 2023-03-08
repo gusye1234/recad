@@ -8,6 +8,7 @@ factories = {
         "segment": attacker.SegmentAttack,
         "bandwagon": attacker.BandwagonAttack,
         "aush": attacker.Aush,
+        "aia": attacker.AIA,
     },
 }
 
