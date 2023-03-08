@@ -161,14 +161,13 @@ class ExplicitData(BaseData):
         return self._mode
 
     def generate_batch(self, **config):
+        user_filter = config.get("user_filter", None)
         if self.mode() == 'train':
-            selected_ids = config.get("selected_ids", [])
-            target_id_list = config.get("target_id_list", [])
-            filler_num = config['filler_num']
             batch_size = self.config['batch_size']
-            mask_array = (self.train_mat > 0).astype('float')
-            mask_array[:, selected_ids + target_id_list] = 0
-            available_idx = np.where(np.sum(mask_array, 1) >= filler_num)[0]
+            if user_filter is not None:
+                available_idx = user_filter(train_mat=self.train_mat)
+            else:
+                available_idx = list(range(len(self.train_mat)))
             available_idx = np.random.permutation(available_idx)
             total_batch = (len(available_idx) + batch_size - 1) // batch_size
             for b in range(total_batch):

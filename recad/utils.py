@@ -90,7 +90,7 @@ def check_path_or_empty(*args):
     if p.exists():
         return str(p.absolute())
     else:
-        _logger.warning(f"Expect {p.absolute()} to exist, but not")
+        _logger.debug(f"Expect {p.absolute()} to exist, but not")
         return ""
 
 
@@ -170,9 +170,14 @@ def pick_optim(which):
             raise ValueError("optimizer not supported")
 
 
+def filler_filter_mat(train_mat, target_id_list=[], selected_ids=[], filler_num=0):
+    mask_array = (train_mat > 0).astype('float')
+    mask_array[:, selected_ids + target_id_list] = 0
+    available_idx = np.where(np.sum(mask_array, 1) >= filler_num)[0]
+    return available_idx
+
+
 # lazy instantiate support
-
-
 def lazy_init_func(init_func):
     @wraps(init_func)
     def empty_init(self, *arg, init_args_kwargs_ready=False, **kwargs):

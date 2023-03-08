@@ -3,8 +3,9 @@ import math
 import torch
 from torch import nn
 import numpy as np
+from functools import partial
 from ...default import MODEL
-from ...utils import pick_optim, VarDim
+from ...utils import pick_optim, VarDim, filler_filter_mat
 
 
 class Aush(BaseAttacker):
@@ -60,10 +61,6 @@ class Aush(BaseAttacker):
         filler_pool = (
             set(range(self.n_items)) - set(self.selected_ids) - set(target_id_list)
         )
-
-        # print(filler_pool)
-        # print(np.argwhere(real_profiles[0] > 0).flatten())
-        # print(list(set(np.argwhere(real_profiles[0] > 0).flatten()) & filler_pool))
         filler_sampler = lambda x: np.random.choice(
             size=self.filler_num,
             replace=True,
@@ -87,10 +84,15 @@ class Aush(BaseAttacker):
         g_loss_shilling_l = []
         g_loss_gan_l = []
         d_losses = []
+
+        index_filter = partial(
+            filler_filter_mat,
+            selected_ids=self.selected_ids,
+            filler_num=self.filler_num,
+            target_id_list=target_id_list,
+        )
         for idx, dp in enumerate(
-            self.dataset.generate_batch(
-                filler_num=self.filler_num, selected_ids=self.selected_ids, **config
-            )
+            self.dataset.generate_batch(user_filter=index_filter, **config)
         ):
             batch_set_idx = dp['users']
             real_profiles = dp['users_mat']
