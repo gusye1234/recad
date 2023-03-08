@@ -13,5 +13,5 @@ setup(
     long_description_content_type='text/markdown',
     license='GPLv3',
     install_requires=['torch', 'pandas', 'scipy', 'tabulate', 'tqdm', 'coloredlogs'],
-    python_requires='>=3.6',
+    python_requires='>=3.7',
 )

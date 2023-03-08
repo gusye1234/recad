@@ -17,7 +17,7 @@ jobs:
     name: Demos on ${{ matrix.os }} for ${{ matrix.python-version }}
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: [3.7, 3.8, 3.9]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
