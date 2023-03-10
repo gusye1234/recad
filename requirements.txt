@@ -4,3 +4,4 @@ torch
 scipy
 tabulate
 pandas
+higher

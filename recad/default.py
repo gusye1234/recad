@@ -50,7 +50,7 @@ DATASET = {
             "need_graph": True,
             "rating_filter": 4,
         }
-        for name in ['ml1m', 'yelp', "game"]
+        for name in ['ml1m', 'yelp', "game", "dev"]
     },
     "explicit": {
         name: {
@@ -69,7 +69,7 @@ DATASET = {
             'threshold': 4,
             "sample": "row",
         }
-        for name in ['ml1m', 'yelp', "game"]
+        for name in ['ml1m', 'yelp', "game", "dev"]
     },
 }
 
@@ -157,23 +157,34 @@ MODEL = {
             "lr_d": 0.001,
             "optim_g": 'adam',
             "optim_d": 'adam',
-            "selected_ids": [
-                1153,
-                2201,
-                1572,
-                836,
-                523,
-                849,
-                1171,
-                344,
-                857,
-                1213,
-                1535,
-            ],
+            "selected_ids": [62],
             "ZR_ratio": 0.2,
         },
         "aia": {
             "attack_num": 50,
+            "filler_num": 36,
+            "lr_g": 0.01,
+            "lr_d": 0.001,
+            "optim_g": 'adam',
+            "optim_d": 'adam',
+            "surrogate_model": "WMF",
+            "epoch_s": 50,
+            "unroll_steps_s": 1,
+            "hidden_dim_s": 16,
+            "lr_s": 1e-2,
+            "weight_decay_s": 1e-5,
+            "batch_size_s": 16,
+            "weight_pos_s": 1.0,
+            "weight_neg_s": 0.0,
+            "selected_ids": [62],
+        },
+        "aushplus": {
+            "attack_num": 50,
+            "pretrain_epoch_g": 1,
+            "pretrain_epoch_d": 5,
+            "epoch_gan_d": 5,
+            "epoch_gan_g": 1,
+            "epoch_surrogate": 50,
             "filler_num": 36,
             "lr_g": 0.01,
             "lr_d": 0.001,

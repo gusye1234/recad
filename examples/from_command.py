@@ -9,7 +9,7 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description="Run recad")
     parser.add_argument(
-        '--data', type=str, default="ml1m", choices=['ml1m', 'yelp', 'game']
+        '--data', type=str, default="ml1m", choices=['ml1m', 'yelp', 'game', 'dev']
     )
     parser.add_argument(
         '--victim', type=str, default="lightgcn", choices=['lightgcn', 'mf', 'ncf']
@@ -21,6 +21,7 @@ def parse_args():
     parser.add_argument('--rec_ratio', type=float, default=1)
     parser.add_argument('--tqdm', type=int, default=1)
     parser.add_argument('--cuda_id', type=int, default=0)
+    parser.add_argument('--filler_num', type=int, default=36)
     return parser.parse_args()
 
 
@@ -45,7 +46,9 @@ config = {
         user_ratio=ARG.attack_ratio,
     ),
     "victim": recad.model.from_config("victim", ARG.victim),
-    "attacker": recad.model.from_config("attacker", ARG.attack),
+    "attacker": recad.model.from_config(
+        "attacker", ARG.attack, filler_num=ARG.filler_num
+    ),
     "rec_epoch": ARG.rec_epoch,
     "attack_epoch": ARG.attack_epoch,
 }
