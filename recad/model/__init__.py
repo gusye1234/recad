@@ -9,6 +9,7 @@ factories = {
         "bandwagon": attacker.BandwagonAttack,
         "aush": attacker.Aush,
         "aia": attacker.AIA,
+        "aushplus": attacker.AushPlus,
     },
 }
 
