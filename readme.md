@@ -21,6 +21,12 @@ RecAD is a unified library aiming at establishing an open benchmark for recommen
 * Amazon-game
 * Epinions
 * Book-crossing
+* BeerAdvocate
+* dianping
+* food
+* ModCloth
+* ratebeer
+* RentTheRunway
 * ...
 
 ##### Victim Models
