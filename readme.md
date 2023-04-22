@@ -1,17 +1,3 @@
-<div align="center">
-  <h1>RecAD</h1>
-      <p>
-    <a href="https://github.com/gusye1234/recad/blob/main/todo.md">
-      <img src="https://img.shields.io/badge/stability-unstable-yellow.svg">
-    </a>
-    <a href="https://github.com/gusye1234/recad/actions?query=workflow%3Ademo">
-      <img src="https://github.com/gusye1234/recad/actions/workflows/demo.yaml/badge.svg">
-    </a>
-  </p>
-</div>
-
-
-
 RecAD is a unified library aiming at establishing an open benchmark for recommender attack and defense. With a few line of codes, you can quickly construct a attacking pipeline. The supported modules currently include:
 
 ##### Datasets
@@ -152,7 +138,3 @@ Install `pre-commit` first to make sure the commits you made is well-formatted:
 pip install pre-commit
 pre-commit install
 ```
-
-## Acknowledgement
-
-Thanks to the first two contributors: [@CS. Wang](https://github.com/Wcsa23187), [@Jianbai Ye](https://github.com/gusye1234)
