@@ -27,11 +27,12 @@ class Normal(BaseWorkflow):
                 ]
             ),
         )
+        self.victim: BaseVictim = config['victim'].I(dataset=config['victim_data'])
+        self.victim_data: BaseData = config['victim_data']
         self.attacker: BaseAttacker = config['attacker'].I(
             dataset=config['attack_data']
         )
-        self.victim: BaseVictim = config['victim'].I(dataset=config['victim_data'])
-        self.victim_data: BaseData = config['victim_data']
+        
         self.logger = get_logger(__name__, level=self.c['logging_level'])
 
     @classmethod
@@ -89,7 +90,8 @@ class Normal(BaseWorkflow):
                 new_line = [user_id, pred_value] + [
                     1 if target_id in sorted_recommend_list[:k] else 0 for k in topks
                 ]
-                topks_array[idx + bias] = new_line
+                # topks_array[idx + bias] = new_line
+                topks_array[idx * len(target_ids) + bias] = new_line                
         return topks_array
 
     def normal_train(self, **config):
@@ -99,7 +101,7 @@ class Normal(BaseWorkflow):
                 **self.info_describe(), progress_bar=progress
             )
             out_des = config['model'].output_describe()['train_step']
-
+            print(f'normal_train{ep}')
             assert len(loss) == len(
                 out_des
             ), f"The output describe is not aligned with the actual output of train_step for {config['model'].model_name}"
@@ -158,6 +160,13 @@ class Normal(BaseWorkflow):
             results[f"HR@{k}"] = np.mean(pred_results[:, 2 + i])
             results[f"HR@{k} after attack"] = np.mean(pred_results_fake[:, 2 + i])
         print(fmt_tab(dict2list_table(results)))
+        
+        
+        record = [self.attacker.model_name, self.victim.model_name, self.victim_data.dataset_name]
+        for k in topks:
+            record = record + [results[f"HR@{k}"], results[f"HR@{k} after attack"]]
+        df = pd.DataFrame([record])
+        df.to_csv('../mytest.csv',mode='a',header=False, index=False)
 
     def execute(self):
         self.logger.info(
@@ -168,6 +177,8 @@ class Normal(BaseWorkflow):
         self.attacker = self.attacker.to(self.c['device'])
 
         self.logger.info("Step 1. training a recommender")
+        from ..default import SEED
+        np.random.seed(SEED)
         self.normal_train(
             **{
                 'model': self.victim,
@@ -175,7 +186,7 @@ class Normal(BaseWorkflow):
                 'dataset': self.victim_data,
             }
         )
-
+        print('execute, finished victim train')
         self.logger.info("Step 2. training a attacker")
         if "train_step" in self.attacker.input_describe():
             self.normal_train(
@@ -189,6 +200,7 @@ class Normal(BaseWorkflow):
             self.logger.info(
                 f"Skip attacker training, since {self.attacker.model_name} didn't require it"
             )
+        print('execute, finished attack train')
 
         fake_array = self.attacker.generate_fake(**self.info_describe())
         self.logger.info(
@@ -211,6 +223,7 @@ class Normal(BaseWorkflow):
                 'dataset': fake_dataset,
             }
         )
+        print('execute, finished fake_victim train')
 
         # TODO add evaluate
         self.logger.debug(

@@ -224,7 +224,7 @@ WORKFLOW = {
         "rec_epoch": 400,
         "attack_epoch": 100,
         "target_id_list": [
-            0,
+            31,92
         ],
         "filter_num": 4,
         "topks": [10, 20, 50, 100],

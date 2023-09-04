@@ -49,10 +49,8 @@ class AushPlus(AIA):
 
     def train_G(self, adv=True, attack=True, target_id_list=[]):
         self.netG.train()
-
         fake_tensor_distribution, fake_tensor = self.netG(self.real_template)
-
-        G_adv_loss = torch.tensor(0.0)
+        G_adv_loss = torch.tensor(0.0).to(self.device)
         if adv:
             G_adv_loss = nn.BCELoss(reduction='mean')(
                 self.netD(fake_tensor),
@@ -176,6 +174,7 @@ class AushPlus(AIA):
             _, _, G_rec_loss, _ = self.train_G(
                 adv=False, attack=True, target_id_list=target_id_list
             )
+            print(epoch_surrogate)
 
         return (G_adv_loss, G_rec_loss)
 

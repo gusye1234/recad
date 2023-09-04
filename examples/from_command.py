@@ -52,5 +52,8 @@ config = {
     "rec_epoch": ARG.rec_epoch,
     "attack_epoch": ARG.attack_epoch,
 }
+import torch
+print(torch.rand(1))
+
 workflow = recad.workflow.from_config("no defense", **config)
 workflow.execute()

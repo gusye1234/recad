@@ -27,7 +27,7 @@ def partial_update(loss, optimizer, part=0):
     )
     for para_, grad_ in zip(optimizer.param_groups[part]['params'], grad_groups):
         if para_.grad is None:
-            para_.grad = grad_
+            para_.grad = grad_.clone()
         else:
             # print(grad_)
             para_.grad.data = grad_
