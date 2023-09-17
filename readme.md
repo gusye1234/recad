@@ -10,36 +10,13 @@
     </a>
   </p>
 </div>
-
 RecAD is a unified library aiming at establishing an open benchmark for recommender attack and defense. With a few line of codes, you can quickly construct a attacking pipeline. The supported modules currently include:
 
-##### Datasets
+* **Datasets**: ml1m, yelp, Amazon-game, Epinions, Book-crossing, BeerAdvocate, dianping, food, ModCloth, ratebeer, RentTheRunway. Please checkout more details in `data/`
+* **Victim Models**: MF, LightGCN, NCF.
+* **Attack Models**: Heuristic(*random, average, segment, bandwagon*); AUSH; AIA; Legup
 
-* ml1m
-* yelp
-* Amazon-game
-* Epinions
-* Book-crossing
-* BeerAdvocate
-* dianping
-* food
-* ModCloth
-* ratebeer
-* RentTheRunway
-* ...
-
-##### Victim Models
-
-* MF
-* LightGCN
-* NCF
-
-##### Attack Models
-
-* Heuristic: random, average, segment, bandwagon
-* AUSH
-* AIA
-* Legup
+🚀🚀🚀 We are opening for contribution and any suggestions about adding more datasets and models/
 
 ## Install 
 
@@ -81,9 +58,9 @@ config = {
     "attacker": model.from_config("attacker", "aush"),
     "rec_epoch": 20,
 }
-workflow = workflow.from_config("no defense", **config)
+workflow_inst = workflow.from_config("no defense", **config)
 # run the attacking
-workflow.execute()
+workflow_inst.execute()
 ```
 
 ## Docs

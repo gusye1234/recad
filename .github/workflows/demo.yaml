@@ -6,11 +6,15 @@ on:
       - main
     paths-ignore:
       - "**/*.md"
+      - "**/*.zip"
+      - "**/*.csv"
   pull_request:
     branches:
       - main
     paths-ignore:
       - "**/*.md"
+      - "**/*.zip"
+      - "**/*.csv"
 
 jobs:
   demo:
