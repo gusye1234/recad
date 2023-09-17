@@ -2,10 +2,11 @@ from functools import partial
 from typing import Dict, Generator
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from ..default import DATASET
+from ..default import DATASET, download_dataset
 from ..utils import strip_str, type_if_long, parse_args, get_logger
 from pprint import pprint
 from copy import copy
+from os.path import exists
 
 logger = get_logger(__name__)
 
@@ -25,6 +26,21 @@ class BaseData(ABC):
             if k not in args:
                 logger.debug(f"Unexpected key [{k}] for {cls}, expected in {args}")
         default_config.update(user_config)
+        if any(
+            [
+                not exists(default_config[path_str])
+                for path_str in ['path_train', 'path_valid', 'path_test']
+            ]
+        ):
+            if user_config.get("download", True):
+                logger.info(
+                    f"Some paths of the dataset were missing, triggering download"
+                )
+                download_dataset(scope, name)
+            else:
+                logger.info(
+                    f"Some paths of the dataset were missing, ignoring it since download=False"
+                )
 
         instan = object.__new__(cls)
         instan._dataset_name = name

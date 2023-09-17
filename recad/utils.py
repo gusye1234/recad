@@ -82,16 +82,35 @@ _logger = get_logger(__name__)
 
 
 def root_path():
-    return str(Path(os.path.dirname(__file__), "..").absolute())
+    # return str(Path(os.path.dirname(__file__), "..").absolute())
+    # download data to current dir, for friendly manage
+    return "./"
 
 
-def check_path_or_empty(*args):
+def unzip_file_to_cwd(file):
+    dirname = os.path.dirname(os.path.abspath(file))
+    import zipfile
+
+    with zipfile.ZipFile(file, 'r') as zip_ref:
+        zip_ref.extractall(dirname)
+    _logger.info(f"Unzip {file} to {dirname}")
+    os.remove(file)
+
+
+def download_unzip_to_dir(url, local_dir, name):
+    from urllib import request
+
+    local_file_data = os.path.join(local_dir, name + ".zip")
+    result = request.urlretrieve(url, local_file_data)
+    unzip_file_to_cwd(local_file_data)
+    return result
+
+
+def check_path_or_report(*args):
     p = Path(*args)
-    if p.exists():
-        return str(p.absolute())
-    else:
+    if not p.exists():
         _logger.debug(f"Expect {p.absolute()} to exist, but not")
-        return ""
+    return str(p.absolute())
 
 
 def check_dir_or_make(*args):

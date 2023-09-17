@@ -1,3 +1,16 @@
+<div align="center">
+  <h1>RecAD</h1>
+  <p><strong>A unified library for recommender attack and defense</strong></p>
+    <p>
+    <a href="https://github.com/gusye1234/recad/actions?query=workflow%3Atest">
+      <img src="https://github.com/gusye1234/recad/actions/workflows/demo.yaml/badge.svg">
+    </a>
+    <a href="https://pypi.org/project/recad/">
+      <img src="https://img.shields.io/pypi/v/recad.svg">
+    </a>
+  </p>
+</div>
+
 RecAD is a unified library aiming at establishing an open benchmark for recommender attack and defense. With a few line of codes, you can quickly construct a attacking pipeline. The supported modules currently include:
 
 ##### Datasets
