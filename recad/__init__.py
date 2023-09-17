@@ -13,6 +13,6 @@ np.random.seed(SEED)
 torch.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 __author__ = 'Jianbai Ye'
 __url__ = 'https://github.com/gusye1234/recad'

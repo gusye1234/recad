@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 vars2find = ['__author__', '__version__', '__url__']
@@ -18,7 +18,7 @@ setup(
     url=varstfp['__url__'],
     version=varstfp['__version__'],
     author=varstfp['__author__'],
-    packages=['recad'],
+    packages=find_packages(exclude=['./tests']),
     description='A unified framework for recommender system attacking',
     long_description=long_description,
     long_description_content_type='text/markdown',
