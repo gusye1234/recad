@@ -10,13 +10,15 @@
     </a>
   </p>
 </div>
-RecAD is a unified library aiming at establishing an open benchmark for recommender attack and defense. With a few line of codes, you can quickly construct a attacking pipeline. The supported modules currently include:
+RecAD is a unified library aiming at establishing an open benchmark for recommender attack and defense. With a few line of codes, you can quickly construct a attacking pipeline. 
+
+The supported modules currently include:
 
 * **Datasets**: ml1m, yelp, Amazon-game, Epinions, Book-crossing, BeerAdvocate, dianping, food, ModCloth, ratebeer, RentTheRunway. Please checkout more details in `data/`
 * **Victim Models**: MF, LightGCN, NCF.
 * **Attack Models**: Heuristic(*random, average, segment, bandwagon*); AUSH; AIA; Legup
 
-🚀🚀🚀 We are opening for contribution and any suggestions about adding more datasets and models/
+🚀🚀🚀 We are opening for any contribution or suggestion about adding more datasets and models
 
 ## Install 
 
