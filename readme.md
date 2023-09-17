@@ -10,25 +10,26 @@
     </a>
   </p>
 </div>
-RecAD is a unified library aiming at establishing an open benchmark for recommender attack and defense. With a few line of codes, you can quickly construct a attacking pipeline. 
 
-The supported modules currently include:
 
-* **Datasets**: ml1m, yelp, Amazon-game, Epinions, Book-crossing, BeerAdvocate, dianping, food, ModCloth, ratebeer, RentTheRunway. Please checkout more details in `data/`
-* **Victim Models**: MF, LightGCN, NCF.
-* **Attack Models**: Heuristic(*random, average, segment, bandwagon*); AUSH; AIA; Legup
+RecAD is a unified library that aims to establish an open benchmark for recommender attack and defense. With just a few lines of code, you can quickly construct an attacking pipeline. 
 
-🚀🚀🚀 We are opening for any contribution or suggestion about adding more datasets and models
+The library currently supports the following modules:
+- **Datasets**: ml1m, yelp, Amazon-game, Epinions, Book-crossing, BeerAdvocate, dianping, food, ModCloth, ratebeer, RentTheRunway. More details can be found in the `data/` folder.
+- **Victim Models**: MF, LightGCN, NCF.
+- **Attack Models**: Heuristic (random, average, segment, bandwagon); AUSH; AIA; Legup.
 
-## Install 
+We are open to contributions and suggestions for adding more datasets and models.
 
-Install by `pip`:
+## Installation
+
+You can install the library using `pip`:
 
 ```
 pip install recad
 ```
 
-Or from source:
+Or you can install it from source:
 
 ```
 git clone https://github.com/gusye1234/recad.git
@@ -38,107 +39,107 @@ pip install -e "."
 
 ## Quick Start
 
-Try it from command line:
+You can try running it from the command line:
+
 ```
 recad_runner --attack="aush" --victim="lightgcn"
 ```
 
-Or you can write your own script:
+Alternatively, you can write your own script:
+
 ```python
 from recad import dataset, model, workflow
 
 dataset_name = "ml1m"
 config = {
-    # quickly asscess the dataset with implicit feedback
     "victim_data": dataset.from_config("implicit", dataset_name, need_graph=True),
-    # sample part of the explicit dataset as the attack data
     "attack_data": dataset.from_config("explicit", dataset_name).partial_sample(
         user_ratio=0.2
     ),
-    # set up models config, and later will be instantiated in workflow
     "victim": model.from_config("victim", "lightgcn"),
     "attacker": model.from_config("attacker", "aush"),
     "rec_epoch": 20,
 }
 workflow_inst = workflow.from_config("no defense", **config)
-# run the attacking
 workflow_inst.execute()
 ```
 
-## Docs
+## Documentation
 
-`recad` is designed to help users use and debug interactively, and mainly has three modules: `dataset`, `model`, `workflow`
+The `recad` library consists of three main modules: `dataset`, `model`, and `workflow`.
 
 ### Dataset
+
+You can use the `recad.dataset` module to work with datasets. Some examples of what you can do with this module are:
 
 ```python
 import recad
 
-# how many datasets we support?
+# Print the supported datasets
 print(recad.print_datasets())
 
-# how many configs for one dataset?
+# Print the configuration options for a dataset
 recad.dataset_print_help("ml1m")
 
-# init from a dataset with default parameters
+# Initialize a dataset with default parameters
 dataset = recad.dataset.from_config("implicit", "ml1m")
 
-# init from a dataset and modifies parameters
+# Initialize a dataset and modify the parameters
 dataset = recad.dataset.from_config("implicit", "ml1m", test_batch_size=50, device="cuda")
 ```
 
 ### Model
 
+You can use the `recad.model` module to work with models. Here are some examples:
+
 ```python
-# how many models we support?
+# Print the supported models
 print(recad.print_models())
 
-#how many configs for one model?
+# Print the configuration options for a model
 recad.model_print_help("lightgcn")
-  
-# lazy-init from a model with default parameters
+
+# Lazy-initialize a model with default parameters
 # Not a torch.nn.Module class! Can't be used for training and inferring
 victim_model = recad.model.from_config("victim", "lightgcn")
 
-# lazy-init from a model and modifies parameters
+# Lazy-initialize a model and modify the parameters
 # Not a torch.nn.Module class! Can't be used for training and inferring
 victim_model = recad.model.from_config("victim", "lightgcn", latent_dim_rec=256, lightGCN_n_layers=2)
 
-# Model's have some parameters that are related to some runtime module, e.g. dataset
-# `victim_model` now is an actually torch.nn.Module 
+# Some models have parameters that are related to runtime modules, such as dataset
+# `victim_model` now is a torch.nn.Module 
 dataset = recad.dataset.from_config("implicit", "ml1m")
 victim_model = recad.model.from_config("victim", "lightgcn", dataset=dataset).I()
 ```
 
 ### Workflow
 
+The `recad.workflow` module allows you to define and execute workflows. Here is an example:
+
 ```python
-# how many workflows we support?
+# Print the supported workflows
 print(recad.print_workflows())
 
-#how many configs for one workflow?
+# Print the configuration options for a workflow
 recad.workflow_print_help("no defense")
 
-# init a workflow takes all the components we mentioned before
+# Initialize a workflow by providing the required components
 config = {
-        "victim_data": ..., # Your dataset for victim model, using dataset.from_config...
-        "attack_data": ..., # Your dataset for attacker model, using dataset.from_config...
-        "victim": ..., # Your victim model, using model.from_config...
-        "attacker": model.from_config(
-            "attacker", ARG.attack, filler_num=ARG.filler_num
-        ), # Your attacker model, using model.from_config...
-        "rec_epoch": ..., # Your training epoch for victim model, Int
-        "attack_epoch": ..., # Your training epoch for attacker model, Int
+        "victim_data": ..., # Your dataset for the victim model
+        "attack_data": ..., # Your dataset for the attacker model
+        "victim": ..., # Your victim model
+        "attacker": ..., # Your attacker model
+        "rec_epoch": ..., # Number of training epochs for the victim model
+        "attack_epoch": ..., # Number of training epochs for the attacker model
     }
 workflow_inst = workflow.from_config("no defense", **config)
 
-# Start
-workflow_inst.execute
+# Start the workflow
+workflow_inst.execute()
 ```
 
-*Please checkout the whole pipeline and more details for each module in `recad.main`🤗.*
-
-Confused about what a component is doing? Each component instance in `recad`  will have a `print_help` method to return the input/output information:
+Each component instance in `recad` has a `print_help` method that provides **runtime** information about the input and output:
 
 ```python
 dataset.print_help()
@@ -176,9 +177,9 @@ dataset.print_help()
 
 ## Contribution
 
-Install `pre-commit` first to make sure the commits you made is well-formatted:
+To contribute to the project, make sure you have `pre-commit` installed to format your commits properly.
 
-```shell
+```bash
 pip install pre-commit
 pre-commit install
 ```
