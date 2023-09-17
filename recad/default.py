@@ -30,6 +30,22 @@ def _decorate_config(D, k, v, depth):
             _decorate_config(p, k, v, depth - 1)
 
 
+_Remote_Data_Urls = {
+    'yelp': 'https://drive.google.com/uc?export=download&id=1M2bdsOgobgPOtHjH6enBX_m8WtntyHX8',
+    'RentTheRunway': 'https://drive.google.com/uc?export=download&id=1jh-W96_DMsFJAaOD9PD8mYmvyDGZ_1vt',
+    'ratebeer': 'https://drive.google.com/uc?export=download&id=1G5jEjadW2gbVzJySr9KZrldA1JBpHvLv',
+    'ModCloth': 'https://drive.google.com/uc?export=download&id=1OkjHrkWGmXMUERP1aS_e6ZRH7LWVehY9',
+    'ml1m': 'https://drive.google.com/uc?export=download&id=1eN1XJvXY27sNQAhTI5qnZlDPc76yIcYn',
+    'game': 'https://drive.google.com/uc?export=download&id=1I4EJnBHH73woviP4KC_2-Yn22CqGq3cR',
+    'food': 'https://drive.google.com/uc?export=download&id=1KWEQOe5bo6KjeMVFTbJst6m1Ci0iOP5X',
+    'epinions': 'https://drive.google.com/uc?export=download&id=1RZ2HAunxinb_fEwd5011D5C_-Bh0FZ2a',
+    'dianping': 'https://drive.google.com/uc?export=download&id=1_AlPTV605wnX9Oc_aPmzQlzsx_BGqk6-',
+    'book-crossing': 'https://drive.google.com/uc?export=download&id=13UVgWEo0uT6r96WvyyQZRD7y7mDKDVnh',
+    'BeerAdvocate': 'https://drive.google.com/uc?export=download&id=1h9jZdyP0FZ-Ql2p00_bAfafT-38r45D_',
+    'dev': 'https://github.com/gusye1234/recad/raw/main/data/dev.zip',
+}
+
+
 DATASET = {
     "implicit": {
         name: {
@@ -46,7 +62,7 @@ DATASET = {
             "need_graph": True,
             "rating_filter": 4,
         }
-        for name in ['ml1m', 'yelp', "game", "dev"]
+        for name in list(_Remote_Data_Urls)
     },
     "explicit": {
         name: {
@@ -59,7 +75,7 @@ DATASET = {
             'threshold': 4,
             "sample": "row",
         }
-        for name in ['ml1m', 'yelp', "game", "dev"]
+        for name in list(_Remote_Data_Urls)
     },
 }
 
@@ -202,7 +218,7 @@ def model_print_help(name):
     for k, v in MODEL.items():
         if name in v:
             print(k)
-            print(tabulate(dict2list_table(DATASET[k][name]), disable_numparse=True))
+            print(tabulate(dict2list_table(MODEL[k][name]), disable_numparse=True))
 
 
 def print_models():
@@ -210,7 +226,7 @@ def print_models():
 
 
 WORKFLOW = {
-    "normal": {
+    "no defense": {
         "rec_epoch": 400,
         "attack_epoch": 100,
         "target_id_list": [
@@ -220,6 +236,17 @@ WORKFLOW = {
         "topks": [10, 20, 50, 100],
     }
 }
+
+
+def workflow_print_help(name):
+    for k, v in WORKFLOW.items():
+        if name in k:
+            print(tabulate(dict2list_table(WORKFLOW[name]), disable_numparse=True))
+
+
+def print_workflows():
+    print(list(WORKFLOW))
+
 
 _decorate_config(WORKFLOW, "logging_level", logging.INFO, 2)
 _decorate_config(WORKFLOW, "device", DEVICE, 2)
@@ -237,20 +264,6 @@ def set_device_id(cuda_id):
 # TODO: update to a zh-accessible storage
 
 # Google drive direct download link, generated from https://sites.google.com/site/gdocs2direct/
-_Remote_Data_Urls = {
-    'yelp': 'https://drive.google.com/uc?export=download&id=1M2bdsOgobgPOtHjH6enBX_m8WtntyHX8',
-    'RentTheRunway': 'https://drive.google.com/uc?export=download&id=1jh-W96_DMsFJAaOD9PD8mYmvyDGZ_1vt',
-    'ratebeer': 'https://drive.google.com/uc?export=download&id=1G5jEjadW2gbVzJySr9KZrldA1JBpHvLv',
-    'ModCloth': 'https://drive.google.com/uc?export=download&id=1OkjHrkWGmXMUERP1aS_e6ZRH7LWVehY9',
-    'ml1m': 'https://drive.google.com/uc?export=download&id=1eN1XJvXY27sNQAhTI5qnZlDPc76yIcYn',
-    'game': 'https://drive.google.com/uc?export=download&id=1I4EJnBHH73woviP4KC_2-Yn22CqGq3cR',
-    'food': 'https://drive.google.com/uc?export=download&id=1KWEQOe5bo6KjeMVFTbJst6m1Ci0iOP5X',
-    'epinions': 'https://drive.google.com/uc?export=download&id=1RZ2HAunxinb_fEwd5011D5C_-Bh0FZ2a',
-    'dianping': 'https://drive.google.com/uc?export=download&id=1_AlPTV605wnX9Oc_aPmzQlzsx_BGqk6-',
-    'book-crossing': 'https://drive.google.com/uc?export=download&id=13UVgWEo0uT6r96WvyyQZRD7y7mDKDVnh',
-    'BeerAdvocate': 'https://drive.google.com/uc?export=download&id=1h9jZdyP0FZ-Ql2p00_bAfafT-38r45D_',
-    'dev': 'https://github.com/gusye1234/recad/raw/main/data/dev.zip',
-}
 
 
 def download_dataset(scope, name):

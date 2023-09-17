@@ -43,6 +43,14 @@ RecAD is a unified library aiming at establishing an open benchmark for recommen
 
 ## Install 
 
+Install by `pip`:
+
+```
+pip install recad
+```
+
+Or from source:
+
 ```
 git clone https://github.com/gusye1234/recad.git
 cd recad
@@ -53,8 +61,7 @@ pip install -e "."
 
 Try it from command line:
 ```
-cd example
-python from_command.py --attack="aush" --victim="lightgcn"
+recad_runner --attack="aush" --victim="lightgcn"
 ```
 
 Or you can write your own script:
@@ -81,7 +88,9 @@ workflow.execute()
 
 ## Docs
 
-`recad` is designed to help users use and debug interactively.
+`recad` is designed to help users use and debug interactively, and mainly has three modules: `dataset`, `model`, `workflow`
+
+### Dataset
 
 ```python
 import recad
@@ -89,25 +98,68 @@ import recad
 # how many datasets we support?
 print(recad.print_datasets())
 
-# how many models we support?
-print(recad.print_models())
+# how many configs for one dataset?
+recad.dataset_print_help("ml1m")
+
+# init from a dataset with default parameters
+dataset = recad.dataset.from_config("implicit", "ml1m")
+
+# init from a dataset and modifies parameters
+dataset = recad.dataset.from_config("implicit", "ml1m", test_batch_size=50, device="cuda")
 ```
 
-For each component, we support a `from_config` method:
+### Model
 
 ```python
-import recad
+# how many models we support?
+print(recad.print_models())
 
-dataset = recad.dataset.from_config("ml1m")
+#how many configs for one model?
+recad.model_print_help("lightgcn")
+  
+# lazy-init from a model with default parameters
+# Not a torch.nn.Module class! Can't be used for training and inferring
+victim_model = recad.model.from_config("victim", "lightgcn")
 
-# lazy init, can't function
-attack_model = recad.model.from_config("attack", "random")
-# actually init
-attack_model = recad.model.from_config("attack", "random", dataset=dataset).I()
-..
+# lazy-init from a model and modifies parameters
+# Not a torch.nn.Module class! Can't be used for training and inferring
+victim_model = recad.model.from_config("victim", "lightgcn", latent_dim_rec=256, lightGCN_n_layers=2)
+
+# Model's have some parameters that are related to some runtime module, e.g. dataset
+# `victim_model` now is an actually torch.nn.Module 
+dataset = recad.dataset.from_config("implicit", "ml1m")
+victim_model = recad.model.from_config("victim", "lightgcn", dataset=dataset).I()
 ```
 
-Confused about what a component is doing? Each component in `recad` will have a `print_help` method to return the input/output information:
+### Workflow
+
+```python
+# how many workflows we support?
+print(recad.print_workflows())
+
+#how many configs for one workflow?
+recad.workflow_print_help("no defense")
+
+# init a workflow takes all the components we mentioned before
+config = {
+        "victim_data": ..., # Your dataset for victim model, using dataset.from_config...
+        "attack_data": ..., # Your dataset for attacker model, using dataset.from_config...
+        "victim": ..., # Your victim model, using model.from_config...
+        "attacker": model.from_config(
+            "attacker", ARG.attack, filler_num=ARG.filler_num
+        ), # Your attacker model, using model.from_config...
+        "rec_epoch": ..., # Your training epoch for victim model, Int
+        "attack_epoch": ..., # Your training epoch for attacker model, Int
+    }
+workflow_inst = workflow.from_config("no defense", **config)
+
+# Start
+workflow_inst.execute
+```
+
+*Please checkout the whole pipeline and more details for each module in `recad.main`🤗.*
+
+Confused about what a component is doing? Each component instance in `recad`  will have a `print_help` method to return the input/output information:
 
 ```python
 dataset.print_help()

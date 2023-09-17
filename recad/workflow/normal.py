@@ -19,7 +19,7 @@ class Normal(BaseWorkflow):
             config['cache_dir'],
             "_".join(
                 [
-                    "normal",
+                    "no_defense",
                     config['victim_data'].dataset_name,
                     config['attack_data'].dataset_name,
                     config['victim'].model_name,
@@ -36,9 +36,9 @@ class Normal(BaseWorkflow):
 
     @classmethod
     def from_config(cls, **kwargs):
-        args = list(WORKFLOW['normal'])
+        args = list(WORKFLOW['no defense'])
         user_args = "victim_data, attack_data, victim, attacker"
-        return super().from_config("normal", args, user_args, kwargs)
+        return super().from_config("no defense", args, user_args, kwargs)
 
     def input_describe(self):
         return {
