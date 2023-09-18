@@ -261,9 +261,9 @@ class BandwagonAttack(BaseAttacker):
 
     @classmethod
     def from_config(cls, **kwargs):
-        args = list(MODEL['attacker']['segment'])
+        args = list(MODEL['attacker']['bandwagon'])
         user_args = "dataset"
-        return super().from_config("segment", args, user_args, kwargs)
+        return super().from_config("bandwagon", args, user_args, kwargs)
 
     def train_step(self, users, positive_items, negative_items, **config):
         pass

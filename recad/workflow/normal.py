@@ -27,11 +27,11 @@ class Normal(BaseWorkflow):
                 ]
             ),
         )
+        self.victim: BaseVictim = config['victim'].I(dataset=config['victim_data'])
+        self.victim_data: BaseData = config['victim_data']
         self.attacker: BaseAttacker = config['attacker'].I(
             dataset=config['attack_data']
         )
-        self.victim: BaseVictim = config['victim'].I(dataset=config['victim_data'])
-        self.victim_data: BaseData = config['victim_data']
         self.logger = get_logger(__name__, level=self.c['logging_level'])
 
     @classmethod
@@ -89,7 +89,7 @@ class Normal(BaseWorkflow):
                 new_line = [user_id, pred_value] + [
                     1 if target_id in sorted_recommend_list[:k] else 0 for k in topks
                 ]
-                topks_array[idx + bias] = new_line
+                topks_array[idx * len(target_ids)+ bias] = new_line
         return topks_array
 
     def normal_train(self, **config):
@@ -168,6 +168,9 @@ class Normal(BaseWorkflow):
         self.attacker = self.attacker.to(self.c['device'])
 
         self.logger.info("Step 1. training a recommender")
+        
+        from ..default import SEED
+        np.random.seed(SEED)
         self.normal_train(
             **{
                 'model': self.victim,

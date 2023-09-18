@@ -22,7 +22,7 @@ class LightGCN(BaseVictim):
     def from_config(cls, **kwargs):
         args = list(MODEL['victim']['lightgcn'])
         if kwargs.get("pretrain", False):
-            user_args = "dataset user_emb, item_emb"
+            user_args = "dataset, user_emb, item_emb"
         else:
             user_args = "dataset"
         return super().from_config("lightgcn", args, user_args, kwargs)
