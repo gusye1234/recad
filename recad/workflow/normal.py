@@ -116,7 +116,7 @@ class Normal(BaseWorkflow):
         target_id_list,
         topks,
     ):
-        train_dict = dataset.info_describe()['train_dict']
+        train_dict = dataset.info_describe()['test_dict']
         n_users = dataset.info_describe()['n_users']
         n_items = dataset.info_describe()['n_items']
         for m in [model, model_fake]:

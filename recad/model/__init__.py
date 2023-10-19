@@ -10,6 +10,7 @@ factories = {
         "aush": attacker.Aush,
         "aia": attacker.AIA,
         "aushplus": attacker.AushPlus,
+        "dada": attacker.DADA,
     },
 }
 

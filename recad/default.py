@@ -207,6 +207,25 @@ MODEL = {
             "weight_neg_s": 0.0,
             "selected_ids": [62],
         },
+        "dada": {
+            "attack_num_ratio": 0.1, # delte = 0.1 * real_users
+            "filler_num_ratio": 0.05, # tau = 0.05 * total_items
+            "b1": 1, # [100, 200, 300, 400, 500]
+            "b2": 0.05, # [100, 200, 300, 400, 500]
+            "lambda": 10, # [10, 20, 30, 40, 50]
+            "optim_g": 'adam',
+            "lr_g": 1,
+            "threshold": 0.05,
+            "topk": 50,
+            "surrogate_model": "WRMF", 
+            "lr_s": 0.01, # 0.01
+            "epoch_s": 20, # 100
+            "weight_pos_s": 20,
+            "weight_neg_s": 1,
+            "hidden_dim_s": 16, # 128
+            "regu_coef_s": 0.00001, # 0.00001
+            "batch_size_s": 16, # not mentioned in the paper
+        }
     },
 }
 

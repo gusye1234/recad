@@ -289,7 +289,13 @@ class BaseTrainer(object):
         weights[data > 0] = weight_pos
         res = weights * (data - logits) ** 2
         return res.sum(1)
-
+    
+    @staticmethod
+    def weighted_regularized_mse_loss(U, I, data, logits, regu_coef=0.01, weight_pos=1, weight_neg=0):
+        weights = torch.ones_like(data) * weight_neg
+        weights[data > 0] = weight_pos
+        res = (weights * (data - logits) ** 2).sum() + regu_coef * (U.norm()**2 + I.norm()**2)
+        return res
     @staticmethod
     def _array2sparsediag(x):
         values = x
@@ -560,3 +566,95 @@ class RecsysGenerator(BaseGenerator):
 
     def forward(self, input=None):
         return self.project(self.fake_parameter * (input > 0))
+
+class WRMFTrainer(BaseTrainer):
+    def __init__(
+        self,
+        n_users,
+        n_items,
+        device,
+        hidden_dim,
+        regu_coef,
+        lr,
+        batch_size,
+        weight_pos,
+        weight_neg,
+        verbose=False,
+    ):
+        super(WRMFTrainer, self).__init__()
+        self.n_users = n_users
+        self.n_items = n_items
+        self.device = device
+        self.hidden_dim = hidden_dim
+        self.regu_coef = regu_coef
+        self.lr = lr
+        self.batch_size = batch_size
+        self.weight_pos = weight_pos
+        self.weight_neg = weight_neg
+        self.verbose = verbose
+
+    def _initialize(self):
+        self.net = WeightedMF(
+            n_users=self.n_users, n_items=self.n_items, hidden_dim=self.hidden_dim
+        ).to(self.device)
+        self.optimizer = optim.Adam(
+            self.net.parameters(), lr=self.lr
+        )
+        
+    def fit_adv(self, data_tensor, epoch_num, unroll_steps=1):
+        self._initialize()
+        
+        import higher
+        
+        if not data_tensor.requires_grad:
+            raise ValueError(
+                "To compute adversarial gradients, data_tensor "
+                "should have requires_grad=True."
+            )
+            
+        data_tensor = data_tensor.to(self.device)
+        n_rows = data_tensor.shape[0]
+        idx_list = np.arange(n_rows)
+        model = self.net.to(self.device)
+        
+        for i in range(1, epoch_num - unroll_steps + 1):
+            np.random.shuffle(idx_list)
+            model.train()
+            for batch_idx in self.minibatch(idx_list, batch_size=self.batch_size):
+                loss = self.weighted_regularized_mse_loss(
+                    U=model.P,
+                    I=model.Q,
+                    data=data_tensor[batch_idx].detach(),
+                    logits=model(user_id=batch_idx),
+                    regu_coef=self.regu_coef,
+                    weight_pos=self.weight_pos,
+                    weight_neg=self.weight_neg,
+                )
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+        #     # print(f"training surSys Epoch {i} loss: {loss.item()}")
+        
+        with higher.innerloop_ctx(model, self.optimizer) as (fmodel, diffopt):
+            for i in range(epoch_num - unroll_steps + 1, epoch_num + 1):
+                np.random.shuffle(idx_list)
+                fmodel.train()
+                for batch_idx in self.minibatch(idx_list, batch_size=self.batch_size):
+        #             # Compute loss
+        #             # ===========warning=================
+
+                    loss = self.weighted_regularized_mse_loss(
+                        U=model.P,
+                        I=model.Q,
+                        data=data_tensor[batch_idx],
+                        logits=fmodel(user_id=batch_idx),
+                        regu_coef=self.regu_coef,
+                        weight_pos=self.weight_pos,
+                        weight_neg=self.weight_neg,
+                    )
+        #             # ====================================
+                    diffopt.step(loss)
+                    
+            fmodel.eval()
+            predictions = fmodel()
+        return predictions
