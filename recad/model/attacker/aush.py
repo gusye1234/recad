@@ -161,8 +161,8 @@ class Aush(BaseAttacker):
             g_loss_gan = bce_loss(d_fake_labels, valid_labels)
             g_loss_shilling = mse_loss(fake_profiles * selects_mask, selects_mask * 5.0)
             g_loss_rec = mse_loss(
-                fake_profiles * selects_mask * ZR_mask,
-                selects_mask * input_template * ZR_mask,
+                fake_profiles * selects_mask * (ZR_mask + (real_profiles != 0)),
+                real_profiles * selects_mask,
             )
             g_loss = g_loss_gan + g_loss_rec + g_loss_shilling
 

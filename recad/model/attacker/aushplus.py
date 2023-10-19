@@ -52,7 +52,7 @@ class AushPlus(AIA):
 
         fake_tensor_distribution, fake_tensor = self.netG(self.real_template)
 
-        G_adv_loss = torch.tensor(0.0)
+        G_adv_loss = torch.tensor(0.0).to(self.device)
         if adv:
             G_adv_loss = nn.BCELoss(reduction='mean')(
                 self.netD(fake_tensor),
