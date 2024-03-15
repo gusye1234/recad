@@ -207,6 +207,17 @@ MODEL = {
             "weight_neg_s": 0.0,
             "selected_ids": [62],
         },
+        "uba": {
+            "attack_num": 50,
+            "filler_num": 36,
+            "lr_g": 0.01,
+            "lr_d": 0.001,
+            "optim_g": 'adam',
+            "optim_d": 'adam',
+            "selected_ids": [62],
+            "ZR_ratio": 0.2,
+            "target_user_ids": [43, 34],
+        },
     },
 }
 
