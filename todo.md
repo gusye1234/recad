@@ -4,3 +4,4 @@ Integrate lazy init into base modules.
 - [ ] More models
 - [ ] Add tests
 - [ ] add reference in readme
+- [ ] test
