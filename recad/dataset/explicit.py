@@ -190,6 +190,10 @@ class ExplicitData(BaseData):
     def inject_data(self, mode, data):
         # TODO add injection for explicit data
         return super().inject_data(mode, data)
+    
+    def delete_data(self, mode, user_id, data):
+        # TODO add delete for explicit data
+        return super().delete_data(mode, user_id, data)
 
     def partial_sample(self, **kwargs) -> 'BaseData':
         assert "user_ratio" in kwargs, "Expect to have [user_ratio]"

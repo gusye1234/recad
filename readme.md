@@ -64,6 +64,26 @@ workflow_inst = workflow.from_config("no defense", **config)
 workflow_inst.execute()
 ```
 
+```python
+from recad import dataset, model, workflow
+
+dataset_name = "ml1m"
+config = {
+    "victim_data": dataset.from_config("implicit", dataset_name, need_graph=True),
+    "attack_data": dataset.from_config("explicit", dataset_name).partial_sample(
+        user_ratio=0.2
+    ),
+    "defense_data": dataset.from_config("explicit", dataset_name),
+    "victim": model.from_config("victim", "lightgcn"),
+    "attacker": model.from_config("attacker", "uba"),
+    "rec_epoch": 20,
+    "defender": model.from_config("defender", "PCASelectUsers"),
+}
+
+workflow_inst = workflow.from_config("defense", **config)
+workflow_inst.execute()
+```
+
 ## Documentation
 
 The `recad` library consists of three main modules: `dataset`, `model`, and `workflow`.

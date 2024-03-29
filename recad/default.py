@@ -216,8 +216,16 @@ MODEL = {
             "optim_d": 'adam',
             "selected_ids": [62],
             "ZR_ratio": 0.2,
-            "target_user_ids": [43, 34],
+            "target_user_ids": [741, 225, 289, 338, 308, 244, 605, 86, 46, 570, 208, 972, 21, 284, 578, 616, 103, 981, 18, 383, 432, 454, 835, 14, 537, 500, 486, 318, 754, 385, 218, 545, 154, 226, 301, 469, 92, 617, 728, 926, 651, 725, 418, 435, 243, 595, 97, 130, 836, 91],
+            "budget": 6,
         },
+    },
+    "defender":{
+        "PCASelectUsers":{
+            "kVals": 3,
+            "attack_num": 50
+        },
+
     },
 }
 
@@ -245,6 +253,16 @@ WORKFLOW = {
         ],
         "filter_num": 4,
         "topks": [10, 20, 50, 100],
+    },
+    "defense": {
+        "rec_epoch": 400,
+        "attack_epoch": 100,
+        "target_id_list": [
+            0,
+        ],
+        "filter_num": 4,
+        "topks": [10, 20, 50, 100],
+        "defense_epoch": 1, 
     }
 }
 
