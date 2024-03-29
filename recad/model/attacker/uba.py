@@ -6,7 +6,7 @@ import numpy as np
 from functools import partial
 from ...default import MODEL
 from ...utils import pick_optim, VarDim, filler_filter_mat
-
+import random
 
 class UBA(BaseAttacker):
     def __init__(self, **config) -> None:
@@ -21,7 +21,8 @@ class UBA(BaseAttacker):
         self.device = config['device']
         self.ZR_ratio = config['ZR_ratio']
         self.train_data_array = config['dataset'].info_describe()['train_mat']
-        # self.target_user_id = config['target_user_ids']
+        self.target_user_id = config['target_user_ids']
+        self.budget = config['budget']
         self.build_network()
 
     def build_network(self):
@@ -37,9 +38,9 @@ class UBA(BaseAttacker):
 
     @classmethod
     def from_config(cls, **kwargs):
-        args = list(MODEL['attacker']['aush'])
+        args = list(MODEL['attacker']['uba'])
         user_args = "dataset"
-        return super().from_config("aush", args, user_args, kwargs)
+        return super().from_config("uba", args, user_args, kwargs)
 
     def info_describe(self):
         return super().info_describe()
@@ -76,37 +77,161 @@ class UBA(BaseAttacker):
         fillers[sampled_rows, sampled_cols.flatten()] = 1
         return fillers
 
-    def A3_matrix_get(self):
-        M, N = self.train_data_array.shape
-        expanded_matrix = np.zeros((M + N, M + N))
-        expanded_matrix[:M, M : M + N] = self.train_data_array
-        expanded_matrix[M : M + N, :M] = self.train_data_array.T
-        A3_matrix = expanded_matrix * expanded_matrix * expanded_matrix
-        A3_matrix = A3_matrix[:M, :N]
-        target_list = self.DSP(A3_matrix)
-        return target_list
 
-    def DSP(self, matrix):
+    def prob_matrix_compute(self, add_num):
+        train_data_array = self.train_data_array
+        row_max_values = np.max(train_data_array, axis=1)
+        # print(row_max_values)
+        target_user_id = self.target_user_id
+        for user_id in target_user_id:
+            row_to_duplicate = train_data_array[user_id, :]
+            non_zero_positions = np.where(row_to_duplicate != 0)[0]
+            for pos in non_zero_positions:
+                row_to_duplicate[pos] = random.randint(1, 5)
+            row_to_duplicate[self.selected_ids[0]] = 5
+            for _ in range(add_num):
+                train_data_array = np.vstack([train_data_array, row_to_duplicate])
+        # print(train_data_array.shape)
+        M, N = train_data_array.shape
+        expanded_matrix = np.zeros((M + N, M + N))
+        expanded_matrix[:M, M : M + N] = train_data_array
+        expanded_matrix[M : M + N, :M] = train_data_array.T
+        A3_matrix = expanded_matrix * expanded_matrix * expanded_matrix
+        A3_matrix = A3_matrix[:M, M : M + N]
+        target_user_mat = A3_matrix[target_user_id,:]
+        N = 10  
+        sorted_column_indices = np.argsort(-target_user_mat, axis=1)
+        top_n_column_indices = sorted_column_indices[:, :N]
+        # print(top_n_column_indices)
+        position_list = []
+        for row in top_n_column_indices:
+            if self.selected_ids[0] in row:
+                position = np.where(row == self.selected_ids[0])[0][0] + 1
+                position_list.append(position)
+            else:
+                position = 0
+                position_list.append(position)
+        
+        # print(position_list)
+        return position_list
+
+
+    def budget_matrix(self):
+        prob_mat = np.zeros((len(self.target_user_id), self.budget))
+        lists_to_insert = []
+        for i in range(self.budget):
+            add_numm = i+1
+            temp_consume = []
+            for i in range(len(self.target_user_id)):
+                temp_consume.append(0)
+            for i in range(10):
+                prob_list = self.prob_matrix_compute(add_numm)
+                for idx, i in enumerate(prob_list):
+                    if i != 0:
+                        temp_consume[idx] += 1
+                    else:
+                        temp_consume[idx] += 0
+            lists_to_insert.append(temp_consume)
+        for i, lst in enumerate(lists_to_insert):
+            prob_mat[:, i] = lst
+        
+        prob_mat = prob_mat / 10
+        # print(prob_mat)
+        return prob_mat
+
+    def DSP_part(self, w, v, n, c):
+        rec = []
+        for i in range(len(n)):
+            rec.append([])
+        sum = 0
+        for i in n:
+            for j in range(i):
+                rec[sum].append(0)
+            sum += 1
+        mydict = {}
+        dict_list = []
+        dp = [0 for _ in range(c + 1)]
+        for i in range(1, len(w) + 1):
+            for j in reversed(range(1, c + 1)):
+                for k in range(n[i - 1]):
+                    if j - w[i - 1][k] >= 0:
+                        dp[j] = max(dp[j], dp[j - w[i - 1][k]] + v[i - 1][k])
+                        if dp[j - w[i - 1][k]] + v[i - 1][k] >= dp[j]:
+                            if (j,round(dp[j],2)) in mydict.keys():
+                                mydict[(j,round(dp[j],2))].append((i,k))
+                            else:
+                                mydict[(j,round(dp[j],2))] = []
+                                mydict[(j,round(dp[j],2))].append((i,k))
+                            dict_list.append((i,k,j,round(dp[j],2)))
+        return mydict,dict_list,dp[c].max()
+
+
+    def DSP(self):
         print('Finish compute A3 matrix...')
         # to be continued
-        total_weight_limit = 50
-        num_people = len(matrix)
-        dp = [
-            [-1 for _ in range(total_weight_limit + 1)] for _ in range(num_people + 1)
-        ]
-        dp[0][0] = 0
-        dp_list = np.random.randint(0, 100, size=50)
-        for person in range(1, 50 + 1):
-            for weight_limit in range(total_weight_limit + 1):
-                dp[person][weight_limit] = dp[person - 1][weight_limit]
-                for item_weight in matrix[person - 1]:
-                    if item_weight <= weight_limit:
-                        dp[person][weight_limit] = max(
-                            dp[person][weight_limit],
-                            1 + dp[person - 1][int(weight_limit - item_weight)],
-                        )
-
-        return dp_list
+        prob_mat = self.budget_matrix()
+        data_index = self.target_user_id
+        x = prob_mat
+        index = 0
+        weight = []
+        user_id = []
+        v = []
+        for user in data_index:
+            temp_w = []
+            temp_v = []
+            for i in range(6):
+                if x[index][i] != 0:
+                    temp_w.append(i)
+                    temp_v.append(x[index][i])
+            if len(temp_w) != 0:
+                weight.append(temp_w)
+                v.append(temp_v)
+                user_id.append(user)
+            index += 1
+        lenth = []
+        for i in weight:
+            lenth.append(len(i))
+        c = 100
+        w = weight
+        v = v
+        n = lenth
+        mydict,dict_list,max_v = self.DSP_part(w, v, n, c)
+        max_v = round(max_v,1)
+        for i in dict_list:
+            if i[2]==100 and i[3] == max_v:
+                temp_list = i
+        value = max_v
+        c = 100
+        team = self.attack_num
+        order = temp_list[1]
+        dict_final = {}
+        sum_list = []
+        while (team,order,c,value) in dict_list:
+            # print(((team,order,c,value),w[team-1][order],v[team-1][order],user_id[team-1]))
+            dict_final[user_id[team-1]] = w[team-1][order]
+            sum_list.append(v[team-1][order])
+            c_d = w[team-1][order]
+            value_d = v[team-1][order]
+            c = c - c_d
+            value=value- value_d
+            c = round(c,2)
+            value = round(value,2)
+            temp = []
+            for i in dict_list:
+                if i[2]==c and i[3] == value:
+                    temp.append(i)
+            sign = 0
+            for j in range(len(temp)):
+                if sign == 0:
+                    if temp[j][0] != team:
+                        team = temp[j][0]
+                        order = temp[j][1]
+                        sign = 1
+        user_list = []
+        for key in dict_final.keys():
+            for j in range(dict_final[key]):
+                user_list.append(key)
+        return user_list
 
     def train_step(self, **config):
         target_id_list = config['target_id_list']
@@ -220,9 +345,8 @@ class UBA(BaseAttacker):
         available_idx = np.random.permutation(available_idx)
         idx = available_idx[np.random.randint(0, len(available_idx), self.attack_num)]
         idx = list(idx)
-        idx = self.A3_matrix_get()
+        idx = self.DSP()
         real_profiles = self.train_data_array[idx, :]
-
         # sample fillers
         fillers_mask = self.sample_fillers(real_profiles, target_id_list)
         # selected

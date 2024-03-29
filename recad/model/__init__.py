@@ -1,4 +1,4 @@
-from . import victim, attacker
+from . import victim, attacker, defense
 
 factories = {
     "victim": {"lightgcn": victim.LightGCN, 'mf': victim.MF, 'ncf': victim.NCF},
@@ -12,8 +12,10 @@ factories = {
         "aushplus": attacker.AushPlus,
         "uba": attacker.UBA,
     },
+    "defender":{
+        "PCASelectUsers":defense.PCASelectUsers
+    }
 }
-
 
 def from_config(scope, name, **kwargs):
     return factories[scope][name].from_config(**kwargs)

@@ -492,6 +492,25 @@ class ImplicitData(BaseData):
                 new_train_dict[k] = v
             return self.reset(train_dict=new_train_dict, if_cache=False)
         raise NotImplementedError(f"Injection not supported in {data_mode} mode")
+    
+    def delete_data(self, data_mode, user_id, data, **kwargs):
+        if data_mode == 'explicit':
+            new_train_dict = copy(self.train_dict)
+            
+            
+            inject_dict = fake_array2dict(
+                data, self.n_users, filter_num=kwargs['filter_num']
+            )
+            for k, v in inject_dict.items():
+                assert (
+                    k not in new_train_dict
+                ), f"Injection to a exist user {k} is not allowed"
+                new_train_dict[k] = v
+            for key in list(new_train_dict.keys()):
+                if key in user_id:
+                    del new_train_dict[key]
+            return self.reset(train_dict=new_train_dict, if_cache=False)
+        raise NotImplementedError(f"Injection not supported in {data_mode} mode")
 
     def partial_sample(self, **kwargs) -> 'BaseData':
         # TODO return the sampled implicit feedback, but attacker may want ratings

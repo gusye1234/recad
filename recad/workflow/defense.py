@@ -2,28 +2,32 @@ from os import path
 import torch
 import pandas as pd
 import numpy as np
+import random
 from .base import BaseWorkflow
 from ..dataset import BaseData
 from ..model.attacker import BaseAttacker
 from ..model.victim import BaseVictim
-from ..default import WORKFLOW
+from ..model.defense import BaseDefender
+from ..default import WORKFLOW, SEED
 from ..utils import use_dir, pick_optim, get_logger, dict2list_table, fmt_tab, tqdm
 from collections import OrderedDict
 import logging
 
 
-class Normal(BaseWorkflow):
+class Defense(BaseWorkflow):
     def __init__(self, **config):
         self.c = config
         self.saving_dir = use_dir(
             config['cache_dir'],
             "_".join(
                 [
-                    "no_defense",
+                    "defense",
                     config['victim_data'].dataset_name,
                     config['attack_data'].dataset_name,
+                    config['defense_data'].dataset_name,
                     config['victim'].model_name,
                     config['attacker'].model_name,
+                    config['defender'].model_name,
                 ]
             ),
         )
@@ -32,13 +36,14 @@ class Normal(BaseWorkflow):
         )
         self.victim: BaseVictim = config['victim'].I(dataset=config['victim_data'])
         self.victim_data: BaseData = config['victim_data']
+        self.defender: BaseDefender = config['defender'].I(dataset=config['defense_data'])
         self.logger = get_logger(__name__, level=self.c['logging_level'])
 
     @classmethod
     def from_config(cls, **kwargs):
-        args = list(WORKFLOW['no defense'])
-        user_args = "victim_data, attack_data, victim, attacker"
-        return super().from_config("no defense", args, user_args, kwargs)
+        args = list(WORKFLOW['defense'])
+        user_args = "victim_data, attack_data, defense_data, victim, attacker, defender"
+        return super().from_config("defense", args, user_args, kwargs)
 
     def input_describe(self):
         return {
@@ -46,6 +51,8 @@ class Normal(BaseWorkflow):
             "victim_data": BaseData,
             "attacker": BaseAttacker,
             "attack_data": BaseData,
+            "defender": BaseDefender,
+            "defense_data": BaseData,
         }
 
     def info_describe(self):
@@ -92,6 +99,12 @@ class Normal(BaseWorkflow):
                 topks_array[idx + bias] = new_line
         return topks_array
 
+    def random_seed_set(self):
+        random.seed(SEED)
+        np.random.seed(SEED)
+        torch.manual_seed(SEED)
+        torch.cuda.manual_seed_all(SEED)
+
     def normal_train(self, **config):
         progress = tqdm(range(config['epoch']))
         for ep in progress:
@@ -107,6 +120,7 @@ class Normal(BaseWorkflow):
             for i, out in enumerate(out_des.keys()):
                 loss_flag = loss_flag + f"{out}: {loss[i]:.4f}|"
             progress.set_description(f"{loss_flag}")
+
 
     def normal_evaluate(
         self,
@@ -159,14 +173,16 @@ class Normal(BaseWorkflow):
             results[f"HR@{k} after attack"] = np.mean(pred_results_fake[:, 2 + i])
         print(fmt_tab(dict2list_table(results)))
 
+
     def execute(self):
         self.logger.info(
-            f"Normal attacking, with dataset {self.victim_data.dataset_name}, victim model {self.victim.model_name}, attack model {self.attacker.model_name}, on device {self.c['device']}"
+            f"Normal attacking, with dataset {self.victim_data.dataset_name}, victim model {self.victim.model_name}, attack model {self.attacker.model_name}, defense model {self.defender.model_name}, on device {self.c['device']}"
         )
 
         self.victim = self.victim.to(self.c['device'])
         self.attacker = self.attacker.to(self.c['device'])
-
+        self.defender = self.defender.to(self.c['device'])
+        # 
         self.logger.info("Step 1. training a recommender")
         self.normal_train(
             **{
@@ -175,7 +191,7 @@ class Normal(BaseWorkflow):
                 'dataset': self.victim_data,
             }
         )
-
+        # 
         self.logger.info("Step 2. training a attacker")
         if "train_step" in self.attacker.input_describe():
             self.normal_train(
@@ -189,7 +205,7 @@ class Normal(BaseWorkflow):
             self.logger.info(
                 f"Skip attacker training, since {self.attacker.model_name} didn't require it"
             )
-
+        # 
         fake_array = self.attacker.generate_fake(**self.info_describe())
         self.logger.info(
             f"Step 3. injecting fake data({tuple(fake_array.shape)}) and re-train the recommender"
@@ -202,8 +218,12 @@ class Normal(BaseWorkflow):
         if self.c['logging_level'] == logging.DEBUG:
             fake_dataset.print_help()
 
+        self.logger.info("Step 4. Retraining a recommender")
+        self.random_seed_set()
+        # Reload the fake_dataset after injection
         fake_victim = self.victim.reset().I(dataset=fake_dataset)
         fake_victim = fake_victim.to(self.c['device'])
+        
         self.normal_train(
             **{
                 'model': fake_victim,
@@ -211,7 +231,65 @@ class Normal(BaseWorkflow):
                 'dataset': fake_dataset,
             }
         )
+
+        # TODO add evaluate
+        self.logger.debug(
+            f"targets: {self.c['target_id_list']}, topks: {self.c['topks']}"
+        )
+        self.normal_evaluate(
+            self.victim,
+            fake_victim,
+            self.victim_data,
+            self.c['target_id_list'],
+            topks=self.c['topks'],
+        )
+
+       # TODO train a defender
+        self.logger.info(
+            f"Step 5. training a defender. "
+        )
+
+        if "train_step" in self.defender.input_describe():
+            self.normal_train(
+                **{
+                'model': self.defender,
+                'epoch': self.c['defense_epoch'],
+                'dataset': fake_dataset,
+                }
+            )
+        else:
+            self.logger.info(
+                f"Skip defender training, since {self.defender.model_name} didn't require it"
+            )
+
+        fake_user_id = self.defender.defense_step()
+
+        self.logger.info(
+            f"Step 6. Delete fake data(len = {len(fake_user_id)}) and re-train the recommender"
+        )
+        self.logger.debug(f"{len(fake_user_id)}")
         
+        fake_dataset_after_delete = self.victim_data.delete_data(
+            "explicit", fake_user_id, fake_array, filter_num=self.c['filter_num']
+        )
+
+        self.logger.debug("After delete of the fake users")
+        
+        if self.c['logging_level'] == logging.DEBUG:
+            fake_dataset_after_delete.print_help()
+        
+        self.random_seed_set()
+        fake_victim = self.victim.reset().I(dataset=fake_dataset_after_delete)
+        fake_victim = fake_victim.to(self.c['device'])
+        # 
+        self.normal_train(
+            **{
+                'model': fake_victim,
+                'epoch': self.c['rec_epoch'],
+                'dataset': fake_dataset_after_delete,
+            }
+        )
+
         # TODO add evaluate
         self.logger.debug(
             f"targets: {self.c['target_id_list']}, topks: {self.c['topks']}"
