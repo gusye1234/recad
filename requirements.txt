@@ -5,3 +5,4 @@ scipy
 tabulate
 pandas
 higher
+scikit-learn
